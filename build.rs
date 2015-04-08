@@ -3,6 +3,9 @@
 
 use std::os::env;
 use std::io::process::Command;
+use std::io::fs;
+use std::path::Path;
+use std::io::fs::PathExtensions;
 
 fn main() {
     let home = get_env("HOME").unwrap();
@@ -11,7 +14,20 @@ fn main() {
     let out_dir = get_env("OUT_DIR").unwrap();
 
     command(scons.as_slice(), &[]);
-    command("mv", &[concat_path(cargo_manifest_dir, "*.a").as_slice(), out_dir.as_slice()]);
+
+    let a_files = list_children(cargo_manifest_dir, |path| -> bool {
+        if !path.is_file() {
+            return false;
+        }
+
+        return match path.extension_str() {
+            Some(extension) => { extension == "a" },
+            None => false
+        };
+    });
+    let a_files : Vec<&str> = a_files.iter().map(|path| path.filename_str().unwrap()).collect();
+
+    command("mv", concat_slices(a_files.as_slice(), &["target/deps"]).as_slice());
 }
 
 fn command(command : &str, args : &[&str]) {
@@ -31,3 +47,23 @@ fn get_env(key : &str) -> Option<String> {
 fn concat_path(dir : String, child : &str) -> String {
     return format!("{}/{}", dir, child);
 }
+
+fn list_children<P>(dir : String, predicate : P) -> Vec<Path>
+        where P : Fn(&Path) -> bool {
+    let mut children : Vec<Path> = Vec::new();
+
+    let paths = fs::readdir(&Path::new(dir)).unwrap();
+
+    for path in paths.iter() {
+        if predicate(path) {
+            children.push(path.clone());
+        }
+    }
+
+    return children;
+}
+
+fn concat_slices<'a, T : Clone>(slice1 : &'a [T], slice2 : &'a [T]) -> Vec<T> {
+    return [slice1, slice2].concat().clone();
+}
+

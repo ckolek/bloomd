@@ -12,3 +12,4 @@ test_bloomd_runner
 *.pyc
 *.swp
 target/
+bloomd
