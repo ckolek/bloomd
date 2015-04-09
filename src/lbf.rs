@@ -71,11 +71,11 @@ pub extern "C" fn lbf_add(lbf : *mut bloom_lbf, key : &str) -> i32 {
 }
 
 pub extern "C" fn lbf_contains(lbf : *mut bloom_lbf, key : &str) -> i32 {
-    return 0;
+    return unsafe { (*lbf).contains(String::from_str(key)) };
 }
 
 pub extern "C" fn lbf_size(lbf : *mut bloom_lbf) -> u64 {
-    return 0;
+    return unsafe { (*lbf).size() };
 }
 
 pub extern "C" fn lbf_flush(lbf : *mut bloom_lbf) -> i32 {
