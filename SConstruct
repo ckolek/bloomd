@@ -7,7 +7,7 @@ spooky = envspooky.Library('spooky', Glob("deps/spookyhash/*.cpp"))
 envmurmur = Environment(CPPPATH = ['deps/murmurhash/'], CPPFLAGS="-fPIC -fno-exceptions -O2")
 murmur = envmurmur.Library('murmur', Glob("deps/murmurhash/*.cpp"))
 
-envbloom = Environment(CCFLAGS = '-std=c99 -Wall -Werror -Wextra -O2 -D_GNU_SOURCE')
+envbloom = Environment(CCFLAGS = '-fPIC -std=c99 -Wall -Werror -Wextra -O2 -D_GNU_SOURCE')
 bloom = envbloom.Library('bloom', Glob("csrc/libbloom/*.c"), LIBS=[murmur, spooky])
 
 envtest = Environment(CCFLAGS = '-std=c99 -Wall -Werror -Wextra -Wno-unused-function -D_GNU_SOURCE -Icsrc/libbloom/')
