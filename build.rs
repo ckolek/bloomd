@@ -11,7 +11,6 @@ fn main() {
     let home = get_env("HOME").unwrap();
     let scons = concat_path(home, "bin/scons/bin/scons");
     let cargo_manifest_dir = get_env("CARGO_MANIFEST_DIR").unwrap();
-    let out_dir = get_env("OUT_DIR").unwrap();
 
     command(scons.as_slice(), &[]);
 

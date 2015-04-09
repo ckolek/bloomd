@@ -1,10 +1,10 @@
 import platform
 plat = platform.system()
 
-envspooky = Environment(CPPPATH = ['deps/spookyhash/'], CPPFLAGS="-fno-exceptions -O2")
+envspooky = Environment(CPPPATH = ['deps/spookyhash/'], CPPFLAGS="-fPIC -fno-exceptions -O2")
 spooky = envspooky.Library('spooky', Glob("deps/spookyhash/*.cpp"))
 
-envmurmur = Environment(CPPPATH = ['deps/murmurhash/'], CPPFLAGS="-fno-exceptions -O2")
+envmurmur = Environment(CPPPATH = ['deps/murmurhash/'], CPPFLAGS="-fPIC -fno-exceptions -O2")
 murmur = envmurmur.Library('murmur', Glob("deps/murmurhash/*.cpp"))
 
 envbloom = Environment(CCFLAGS = '-std=c99 -Wall -Werror -Wextra -O2 -D_GNU_SOURCE')
@@ -16,9 +16,9 @@ envtest.Program('test_libbloom_runner', Glob("tests/libbloom/*.c"), LIBS=["check
 envinih = Environment(CPATH = ['deps/inih/'], CFLAGS="-O2")
 inih = envinih.Library('inih', Glob("deps/inih/*.c"))
 
-envbloomd_with_err = Environment(CCFLAGS = '-std=c99 -D_GNU_SOURCE -Wall -Wextra -Werror -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
-envbloomd_without_unused_err = Environment(CCFLAGS = '-std=c99 -D_GNU_SOURCE -Wall -Wextra -Wno-unused-function -Wno-unused-result -Werror -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
-envbloomd_without_err = Environment(CCFLAGS = '-std=c99 -D_GNU_SOURCE -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
+envbloomd_with_err = Environment(CCFLAGS = '-fPIC -std=c99 -D_GNU_SOURCE -Wall -Wextra -Werror -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
+envbloomd_without_unused_err = Environment(CCFLAGS = '-fPIC -std=c99 -D_GNU_SOURCE -Wall -Wextra -Wno-unused-function -Wno-unused-result -Werror -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
+envbloomd_without_err = Environment(CCFLAGS = '-fPIC -std=c99 -D_GNU_SOURCE -O2 -pthread -Icsrc/bloomd/ -Ideps/inih/ -Ideps/libev/ -Icsrc/libbloom/')
 
 objs =  envbloomd_with_err.Object('csrc/bloomd/config', 'csrc/bloomd/config.c') + \
         envbloomd_without_err.Object('csrc/bloomd/networking', 'csrc/bloomd/networking.c') + \
