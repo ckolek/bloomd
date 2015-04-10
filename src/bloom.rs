@@ -2,8 +2,8 @@
 
 extern crate libc;
 
-use self::libc::{c_char};
-use std::ffi;
+use self::libc::{c_char, malloc, size_t};
+use std::{mem, ffi, ptr};
 use bitmap::bloom_bitmap;
 
 #[repr(C, packed)]
@@ -14,6 +14,12 @@ pub struct bloom_filter_header {
     __buf : [u8; 496]
 }
 
+impl bloom_filter_header {
+    pub fn new(magic : u32, k_num : u32, count : u64) -> Self {
+        return bloom_filter_header { magic: magic, k_num: k_num, count: count, __buf: [0; 496] };
+    }
+}
+
 #[repr(C)]
 pub struct bloom_bloomfilter<'a> {
     header      : bloom_filter_header,
@@ -22,15 +28,17 @@ pub struct bloom_bloomfilter<'a> {
     bitmap_size : u64
 }
 
-#[repr(C)]
-pub struct bloom_filter_params {
-    bytes          : u64,
-    k_num          : u32,
-    capacity       : u64,
-    fp_probability : f64
-}
-
 impl<'a> bloom_bloomfilter<'a> {
+    pub fn new(mut map : bloom_bitmap<'a>, k_num : u32, new_filter : bool) -> Self {
+        unsafe {
+            let filter_ptr : *mut bloom_bloomfilter = malloc(mem::size_of::<bloom_bloomfilter>() as size_t) as *mut bloom_bloomfilter;
+
+            externals::bf_from_bitmap(&mut map as *mut bloom_bitmap, k_num, new_filter as i32, filter_ptr);
+
+            return ptr::read(filter_ptr);
+        };
+    }
+
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
@@ -63,6 +71,24 @@ impl<'a> bloom_bloomfilter<'a> {
         } else {
             return Ok(());
         }
+    }
+}
+
+#[repr(C)]
+pub struct bloom_filter_params {
+    bytes          : u64,
+    k_num          : u32,
+    capacity       : u64,
+    fp_probability : f64
+}
+
+impl bloom_filter_params {
+    fn empty() -> Self {
+        return bloom_filter_params::new(0, 0, 0, 0.0);
+    }
+
+    fn new(bytes : u64, k_num : u32, capacity : u64, fp_probability : f64) -> Self {
+        return bloom_filter_params { bytes: bytes, k_num: k_num, capacity: capacity, fp_probability: fp_probability };
     }
 }
 
@@ -155,5 +181,14 @@ mod externals {
         pub fn bf_capacity_for_size_prob(params : *mut bloom_filter_params) -> c_int;
 
         pub fn bf_ideal_k_num(params : *mut bloom_filter_params) -> c_int;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let mut params : bloom_filter_params = bloom_filter_params::empty();
+        params.k_num = 1;
     }
 }
