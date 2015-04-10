@@ -1,3 +1,6 @@
+#![crate_type = "lib"]
+#![crate_name = "bloomd"]
+
 #![allow(unstable)]
 #![allow(unstable_features)]
 #![feature(unsafe_destructor)]
@@ -12,7 +15,3 @@ mod filter;
 mod bloom;
 mod bitmap;
 mod lbf;
-
-fn main() {
-
-}
