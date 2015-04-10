@@ -13,7 +13,7 @@ pub struct bloom_sbf_params {
 #[repr(C)]
 pub struct bloom_sbf(c_void) {
     params : bloom_sbf_params,
-    bloom_sbf_callback callback,
+    bloom_sbf_callback callback, // how to represent this?
     callback_input : [void],
     num_filters : u32,
     bloom_bloomfilter [bloom_bloomfilter],
@@ -30,19 +30,37 @@ impl bloom_sbf {
                      bloom_sbf *sbf)
     
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
-        return Ok(false);
+        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
+
+        let result : i32 = unsafe { externals::sbf_add(self as *mut bloom_sbf, key.as_ptr()) };
+        if result < 0 {
+            return Err(());
+        } else {
+            return Ok(result > 0);
+        }
     }
 
     pub fn contains(&self, key : &String) -> Result<bool, ()> {
-        return Ok(false);
+        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
+
+        let result : i32 = unsafe { externals::sbf_contains(self as *const bloom_sbf, key.as_ptr()) };
+        if result < 0 {
+            return Err(());
+        } else {
+            return Ok(result > 0);
+        }
     }
 
-    pub fn size(&self) -> u64 {
-        return 0;
+    pub fn size(&self) -> u64 
+        return unsafe { externals::sbf_size(self as *const bloom_sbf) };
     }
 
     pub fn flush(&mut self) -> Result<(), ()> {
-        return Ok(());
+        if unsafe { externals::sbf_flush(self as *mut bloom_sbf) } < 0 {
+            return Err(());
+        } else {
+            return Ok(());
+        }
     }
 }
 
