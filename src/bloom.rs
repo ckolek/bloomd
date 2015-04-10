@@ -48,12 +48,12 @@ impl<'a> bloom_bloomfilter<'a> {
 
 impl<'a> BloomFilter<bool> for bloom_bloomfilter<'a> {
     fn add(&mut self, key : String) -> Result<bool, ()> {
-        println!("add_key: {}", key);
+        //println!("add_key: {}", key);
 
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
         let result : i32 = unsafe { externals::bf_add(self as *mut bloom_bloomfilter, key.as_ptr()) };
 
-        println!("add_result: {}", result);
+        //println!("add_result: {}", result);
 
         if result < 0 {
             return Err(());
@@ -63,13 +63,13 @@ impl<'a> BloomFilter<bool> for bloom_bloomfilter<'a> {
     }
 
     fn contains(&self, key : &String) -> Result<bool, ()> {
-        println!("contains_key: {}", key);
+        //println!("contains_key: {}", key);
 
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
         let result : i32 = unsafe { externals::bf_contains(self as *const bloom_bloomfilter, key.as_ptr()) };
 
-        println!("contains_result: {}", result);
+        //println!("contains_result: {}", result);
 
         if result < 0 {
             return Err(());

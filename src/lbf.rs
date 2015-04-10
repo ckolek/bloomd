@@ -34,6 +34,8 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
                 Err(_) => return Err(())
             }
         }
+        
+        
 
         return Ok(0);
     }
