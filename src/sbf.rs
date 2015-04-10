@@ -11,23 +11,50 @@ pub struct bloom_sbf_params {
 };
 
 #[repr(C)]
-pub struct bloom_sbf(c_void) {
+pub struct bloom_sbf {
     params : bloom_sbf_params,
-    bloom_sbf_callback callback, // how to represent this?
+    callback : bloom_sbf_callback,
     callback_input : [void],
     num_filters : u32,
-    bloom_bloomfilter [bloom_bloomfilter],
+    filters [bloom_bloomfilter],
     dirty_filters : [u8],
     capacities : [u64]
 };
+
+pub type bloom_sbf_callback = extern fn (c_void, c_ulong, bloom_bitmap) -> c_int;
     
 impl bloom_sbf {
-    pub fn sbf_from_filters(bloom_sbf_params *params,
-                     bloom_sbf_callback cb,
-                     void *cb_in,
-                     uint32_t num_filters,
-                     bloom_bloomfilter **filters,
-                     bloom_sbf *sbf)
+    pub fn sbf_new(params : bloom_sbf_params,
+                   cb : bloom_sbf_callback,
+                   cb_in : [void],
+                   num_filters : u32,
+                   filters : [bloom_bloomfilter],
+                   dirty_filters : [u8],
+                   capacities : [u64]) {
+        return bloom_sbf {
+            params: params,
+            callback: cb,
+            callback_input: cb_in,
+            num_filters: num_filters,
+            filters: filters,
+            dirty_filters: dirty_filters,
+            capacities: capacities
+        };
+    }
+    
+    pub fn sbf_from_filters(params : bloom_sbf_params,
+                            cb : bloom_sbf_callback,
+                            cb_in : [void],
+                            num_filters : u32,
+                            filters : [bloom_bloomfilter]) -> Self {
+        let sbf : bloom_sbf = sbf_new(params, cb, cb_in, num_filters, filters, &[0; 0], &[0; 0]);
+        unsafe { 
+            externals::sbf_from_filters(params, cb, cb_in, num_filters,
+                                        filters, &mut sbf as *mut bloom_sbf)
+        };
+        
+        return sbf;
+    }
     
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
@@ -86,6 +113,12 @@ mod externals {
 
     #[link(name = "bloom")]
     extern {
+        pub fn sbf_from_filters(params : bloom_sbf_params,
+                                cb : bloom_sbf_callback,
+                                cb_in : c_void,
+                                num_filters : u32,
+                                filters : [bloom_bloomfilter],
+                                sbf : bloom_sbf) -> c_int;
         pub fn sbf_add(filter : *mut bloom_sbf, key : *const c_char) -> c_int;
         pub fn sbf_contains(filter : *const bloom_sbf, key : *const c_char) -> c_int;
         pub fn sbf_size(filter : *const bloom_sbf) -> c_ulong;
