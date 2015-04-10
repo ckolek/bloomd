@@ -40,22 +40,25 @@ fn main() {
     let key3 : String = String::from_str("ghi");
 
     // add first key
-    assert!(lbf.add(key1.clone()).unwrap() == 0);
+    assert!(lbf.add(key1.clone()).unwrap() == 1);
+    assert!(lbf.size() == 1);
     assert!(lbf.contains(&key1).unwrap() == 1);
     assert!(lbf.contains(&key2).unwrap() == 0);
     assert!(lbf.contains(&key3).unwrap() == 0);
 
     // add second key
-    assert!(lbf.add(key1.clone()).unwrap() == 1);
-    assert!(lbf.add(key2.clone()).unwrap() == 0);
+    assert!(lbf.add(key1.clone()).unwrap() == 2);
+    assert!(lbf.add(key2.clone()).unwrap() == 1);
+    assert!(lbf.size() == 2);
     assert!(lbf.contains(&key1).unwrap() == 2);
     assert!(lbf.contains(&key2).unwrap() == 1);
     assert!(lbf.contains(&key3).unwrap() == 0);
 
     // add third key
-    assert!(lbf.add(key1.clone()).unwrap() == 2);
-    assert!(lbf.add(key2.clone()).unwrap() == 1);
-    assert!(lbf.add(key3.clone()).unwrap() == 0);
+    assert!(lbf.add(key1.clone()).unwrap() == 3);
+    assert!(lbf.add(key2.clone()).unwrap() == 2);
+    assert!(lbf.add(key3.clone()).unwrap() == 1);
+    assert!(lbf.size() == 3);
     assert!(lbf.contains(&key1).unwrap() == 3);
     assert!(lbf.contains(&key2).unwrap() == 2);
     assert!(lbf.contains(&key3).unwrap() == 1);

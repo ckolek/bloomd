@@ -23,8 +23,8 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
             index += 1;
 
             match filter.contains(&key) {
-                Ok(value) => {
-                    if value {
+                Ok(in_filter) => {
+                    if !in_filter {
                         return match filter.add(key) {
                             Ok(_) => Ok(index),
                             Err(_) => Err(())
@@ -40,17 +40,24 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
 
     fn contains(&self, key : &String) -> Result<u32, ()> {
         let mut index : u32 = 0;
-
+        let mut last_filter_index : u32 = 0;
+        
         for ref filter in self.filters.iter() {
+            index += 1;
             match filter.contains(key) {
-                Ok(value) => { if value { break } },
+                Ok(in_filter) => { 
+                    if in_filter { 
+                        last_filter_index = index; 
+                    } 
+                    else {
+                        break;
+                    }
+                },
                 Err(e) => return Err(e)
             }
-            
-            index += 1;
         }
 
-        return Ok(index);
+        return Ok(last_filter_index);
     }
 
     fn size(&self) -> u64 {
