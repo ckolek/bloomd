@@ -186,6 +186,8 @@ mod externals {
 
 #[cfg(test)]
 mod tests {
+    use super::bloom_filter_params;
+
     #[test]
     fn test() {
         let mut params : bloom_filter_params = bloom_filter_params::empty();
