@@ -92,7 +92,7 @@ impl<'a> BloomFilter<bool> for bloom_sbf<'a> {
         }
     }
 
-    pub fn size(&self) -> u64 
+    pub fn size(&self) -> u64 { 
         return unsafe { externals::sbf_size(self as *const bloom_sbf) };
     }
 
@@ -130,7 +130,7 @@ mod externals {
         pub fn sbf_size(filter : *const bloom_sbf) -> c_ulong;
         pub fn sbf_flush(filter : *mut bloom_sbf) -> c_int;
         pub fn sbf_close(filter : *mut bloom_sbf) -> c_int;
-        pub fn uint64_t sbf_total_capacity(filter : *mut bloom_sbf) -> c_ulong;
-        pub fn uint64_t sbf_total_byte_size(filter : *mut bloom_sbf) -> c_ulong;
+        pub fn sbf_total_capacity(filter : *mut bloom_sbf) -> c_ulong;
+        pub fn sbf_total_byte_size(filter : *mut bloom_sbf) -> c_ulong;
     }
 }
