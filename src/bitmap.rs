@@ -65,7 +65,7 @@ impl<'a> Drop for bloom_bitmap<'a> {
 }
 
 mod externals {
-    use super::libc::{c_char, c_int, c_uint, c_ulong};
+    use super::libc::{c_char, c_int, c_ulong};
     use super::{bitmap_mode, bloom_bitmap};
 
     #[link(name = "bloom")]
