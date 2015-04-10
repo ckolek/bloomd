@@ -79,8 +79,3 @@ mod externals {
         pub fn bitmap_close(map : *mut bloom_bitmap) -> c_int; 
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{bitmap_mode, bloom_bitmap};
-}

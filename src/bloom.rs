@@ -2,8 +2,8 @@
 
 extern crate libc;
 
-use self::libc::{c_char, malloc, size_t};
-use std::{mem, ffi, ptr};
+use self::libc::c_char;
+use std::ffi;
 use bitmap::bloom_bitmap;
 use filter::BloomFilter;
 
@@ -195,29 +195,17 @@ mod externals {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_filter_header, bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
-    use bitmap::{bitmap_mode, bloom_bitmap};
+    use super::{bloom_bloomfilter, bloom_filter_params};
     use filter;
-    use filter::BloomFilter;
 
     static BITMAP_FILE : &'static str = "map.bmp";
-    static FILTER_CAPACITY : u64 = 1000000;
-    static FILTER_FP_PROBABILITY : f64 = 0.001;
 
     #[test]
     fn test() {
-        let mut params : bloom_filter_params = bloom_filter_params::empty();
-        params.capacity = FILTER_CAPACITY;
-        params.fp_probability = FILTER_FP_PROBABILITY;
+        let params : bloom_filter_params = filter::test::create_bloom_filter_params();
+        let filter : bloom_bloomfilter = filter::test::create_bloom_filter(&params, BITMAP_FILE);
 
-        size_for_capacity_prob(&mut params).unwrap();
-        ideal_k_num(&mut params).unwrap();
-
-        let mut map : bloom_bitmap = bloom_bitmap::from_filename(BITMAP_FILE, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
-
-        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(map, params.k_num, true);
-
-        filter::test_filter(Box::new(filter),
+        filter::test::test_filter(Box::new(filter),
             &[[true, false, false], [false, true, false], [false, false, true]],
             &[[true, false, false], [true, true, false], [true, true, true]]);
     }
