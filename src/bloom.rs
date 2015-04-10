@@ -5,6 +5,7 @@ extern crate libc;
 use self::libc::{c_char, malloc, size_t};
 use std::{mem, ffi, ptr};
 use bitmap::bloom_bitmap;
+use filter::BloomFilter;
 
 #[repr(C, packed)]
 pub struct bloom_filter_header {
@@ -22,29 +23,31 @@ impl bloom_filter_header {
 
 #[repr(C)]
 pub struct bloom_bloomfilter<'a> {
-    header      : &'a bloom_filter_header,
-    map         : &'a mut bloom_bitmap,
+    header      : Box<bloom_filter_header>,
+    map         : Box<bloom_bitmap>,
     offset      : u64,
     bitmap_size : u64
 }
 
 impl<'a> bloom_bloomfilter<'a> {
-    pub fn new(header : &'a bloom_filter_header, map : &'a mut bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
+    pub fn new(map : bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
         let mut filter : bloom_bloomfilter = bloom_bloomfilter {
-            header: header,
-            map: map,
+            header: Box::new(bloom_filter_header::new(0, k_num, 0)),
+            map: Box::new(map),
             offset: 0,
             bitmap_size: 0
         };
 
         unsafe {
-            externals::bf_from_bitmap(filter.map as *mut bloom_bitmap, k_num, new_filter as i32, &mut filter as *mut bloom_bloomfilter);
+            externals::bf_from_bitmap(&mut *filter.map, k_num, new_filter as i32, &mut filter as *mut bloom_bloomfilter);
         };
 
         return filter;
     }
+}
 
-    pub fn add(&mut self, key : String) -> Result<bool, ()> {
+impl<'a> BloomFilter<bool> for bloom_bloomfilter<'a> {
+    fn add(&mut self, key : String) -> Result<bool, ()> {
         println!("add_key: {}", key);
 
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
@@ -59,7 +62,7 @@ impl<'a> bloom_bloomfilter<'a> {
         }
     }
 
-    pub fn contains(&self, key : &String) -> Result<bool, ()> {
+    fn contains(&self, key : &String) -> Result<bool, ()> {
         println!("contains_key: {}", key);
 
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
@@ -75,11 +78,11 @@ impl<'a> bloom_bloomfilter<'a> {
         }
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         return unsafe { externals::bf_size(self as *const bloom_bloomfilter) };
     }
 
-    pub fn flush(&mut self) -> Result<(), ()> {
+    fn flush(&mut self) -> Result<(), ()> {
         if unsafe { externals::bf_flush(self as *mut bloom_bloomfilter) } < 0 {
             return Err(());
         } else {
@@ -202,6 +205,7 @@ mod externals {
 mod tests {
     use super::{bloom_filter_header, bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
     use bitmap::{bitmap_mode, bloom_bitmap};
+    use filter::BloomFilter;
 
     #[test]
     fn test() {
@@ -216,9 +220,7 @@ mod tests {
 
         let mut map : bloom_bitmap = bloom_bitmap::from_filename("map1.bmp", 1000000, true, bitmap_mode::NEW_BITMAP).unwrap();
 
-        let header : bloom_filter_header = bloom_filter_header::new(0, params.k_num, 0);
-
-        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(&header, &mut map, params.k_num, true);
+        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(map, params.k_num, true);
 
         let key1 : String = String::from_str("abc");
         let key2 : String = String::from_str("def");
