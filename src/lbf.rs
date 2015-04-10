@@ -1,6 +1,5 @@
 extern crate libc;
 
-use std::{ffi};
 use bloom::bloom_bloomfilter;
 
 #[repr(C)]
