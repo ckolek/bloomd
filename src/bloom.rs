@@ -2,6 +2,7 @@
 
 extern crate libc;
 
+use self::libc::{c_char};
 use std::ffi;
 use bitmap::bloom_bitmap;
 
@@ -19,6 +20,14 @@ pub struct bloom_bloomfilter<'a> {
     map         : bloom_bitmap<'a>,
     offset      : u64,
     bitmap_size : u64
+}
+
+#[repr(C)]
+pub struct bloom_filter_params {
+    bytes          : u64,
+    k_num          : u32,
+    capacity       : u64,
+    fp_probability : f64
 }
 
 impl<'a> bloom_bloomfilter<'a> {
@@ -66,9 +75,59 @@ impl<'a> Drop for bloom_bloomfilter<'a> {
     }
 }
 
+pub fn compute_hashes(k_num : u32, key : &str) -> u64 {
+    let key : ffi::CString = ffi::CString::from_slice(key.as_bytes());
+
+    let mut hashes : u64 = 0;
+
+    unsafe { externals:: bf_compute_hashes(k_num, key.as_ptr() as *mut c_char, &mut hashes as *mut u64) };
+
+    return hashes;
+}
+
+pub fn params_for_capacity(params : &mut bloom_filter_params) -> Result<(), ()> {
+    if unsafe { externals::bf_params_for_capacity(params as *mut bloom_filter_params) } < 0 {
+        return Err(());
+    } else {
+        return Ok(());
+    }
+}
+
+pub fn size_for_capacity_prob(params : &mut bloom_filter_params) -> Result<(), ()> {
+    if unsafe { externals::bf_size_for_capacity_prob(params as *mut bloom_filter_params) } < 0 {
+        return Err(());
+    } else {
+        return Ok(());
+    }
+}
+
+pub fn fp_probability_for_capacity_size(params : &mut bloom_filter_params) -> Result<(), ()> {
+    if unsafe { externals::bf_fp_probability_for_capacity_size(params as *mut bloom_filter_params) } < 0 {
+        return Err(());
+    } else {
+        return Ok(());
+    }
+}
+
+pub fn capacity_for_size_prob(params : &mut bloom_filter_params) -> Result<(), ()> {
+    if unsafe { externals::bf_capacity_for_size_prob(params as *mut bloom_filter_params) } < 0 {
+        return Err(());
+    } else {
+        return Ok(());
+    }
+}
+
+pub fn ideal_k_num(params : &mut bloom_filter_params) -> Result<(), ()> {
+    if unsafe { externals::bf_ideal_k_num(params as *mut bloom_filter_params) } < 0 {
+        return Err(());
+    } else {
+        return Ok(());
+    }
+}
+
 mod externals {
     use super::libc::{c_char, c_int, c_uint, c_ulong};
-    use super::bloom_bloomfilter;
+    use super::{bloom_bloomfilter, bloom_filter_params};
     use bitmap::bloom_bitmap;
 
     #[link(name = "bloom")]
@@ -84,5 +143,17 @@ mod externals {
         pub fn bf_flush(filter : *mut bloom_bloomfilter) -> c_int;
 
         pub fn bf_close(filter : *mut bloom_bloomfilter) -> c_int;
+
+        pub fn bf_compute_hashes(k_num : c_uint, key : *mut c_char, hashes : *mut c_ulong);
+
+        pub fn bf_params_for_capacity(params : *mut bloom_filter_params) -> c_int;
+
+        pub fn bf_size_for_capacity_prob(params : *mut bloom_filter_params) -> c_int;
+
+        pub fn bf_fp_probability_for_capacity_size(params : *mut bloom_filter_params) -> c_int;
+
+        pub fn bf_capacity_for_size_prob(params : *mut bloom_filter_params) -> c_int;
+
+        pub fn bf_ideal_k_num(params : *mut bloom_filter_params) -> c_int;
     }
 }
