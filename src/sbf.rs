@@ -1,6 +1,11 @@
 #![allow(unstable)]
 
 extern crate libc;
+use self::libc::{c_char, malloc, size_t};
+use std::{mem, ffi, ptr};
+use bitmap::bloom_bitmap;
+use bloom::bloom_bloomfilter;
+use filter::BloomFilter;
 
 #[repr(C, packed)]
 pub struct bloom_sbf_params {
@@ -56,6 +61,15 @@ impl bloom_sbf {
         return sbf;
     }
     
+    pub fn sbf_total_capacity(&self) -> u64 {
+        return unsafe { externals::sbf_total_capacity(self as *const bloom_sbf) };
+    }
+
+    pub fn sbf_total_byte_size(&self) -> u64 {
+        return unsafe { externals::sbf_total_byte_size(self as *const bloom_sbf) };
+    }
+}
+impl<'a> BloomFilter<bool> for bloom_sbf<'a> {   
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
@@ -88,14 +102,6 @@ impl bloom_sbf {
         } else {
             return Ok(());
         }
-    }
-    
-    pub fn sbf_total_capacity(&self) -> u64 {
-        return unsafe { externals::sbf_total_capacity(self as *const bloom_sbf) };
-    }
-
-    pub fn sbf_total_byte_size(&self) -> u64 {
-        return unsafe { externals::sbf_total_byte_size(self as *const bloom_sbf) };
     }
 }
 

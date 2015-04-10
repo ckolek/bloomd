@@ -23,8 +23,8 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
             index += 1;
 
             match filter.contains(&key) {
-                Ok(value) => {
-                    if !value {
+                Ok(in_filter) => {
+                    if !in_filter {
                         return match filter.add(key) {
                             Ok(_) => Ok(index),
                             Err(_) => Err(())
@@ -34,16 +34,18 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
                 Err(_) => return Err(())
             }
         }
+        
+        
 
         return Ok(0);
     }
 
     fn contains(&self, key : &String) -> Result<u32, ()> {
         let mut index : u32 = 0;
-
+        
         for ref filter in self.filters.iter() {
             match filter.contains(key) {
-                Ok(value) => { if !value { break } },
+                Ok(in_filter) => { if !in_filter { break } },
                 Err(_) => return Err(())
             }
 
@@ -127,20 +129,17 @@ mod test {
     use bitmap::{bitmap_mode, bloom_bitmap};
     use lbf::bloom_lbf;
 
-    static BITMAP_FILE : &'static str = "map.bmp";
     static FILTER_CAPACITY : u64 = 1000000;
     static FILTER_FP_PROBABILITY : f64 = 0.001;
 
     #[test]
     fn test() {
         let mut params : bloom_filter_params = bloom_filter_params::empty();
-        params.capacity = 1000000;
-        params.fp_probability = 0.001;
+        params.capacity = FILTER_CAPACITY;
+        params.fp_probability = FILTER_FP_PROBABILITY;
 
         size_for_capacity_prob(&mut params).unwrap();
         ideal_k_num(&mut params).unwrap();
-
-        println!("bytes: {}, k_num: {}", params.bytes, params.k_num);
 
         let mut filters : Vec<bloom_bloomfilter> = Vec::new();
 
@@ -156,6 +155,9 @@ mod test {
 
         // add first key
         assert!(lbf.add(key1.clone()).unwrap() == 1);
+
+        assert!(lbf.size() == 1);
+
         assert!(lbf.contains(&key1).unwrap() == 1);
         assert!(lbf.contains(&key2).unwrap() == 0);
         assert!(lbf.contains(&key3).unwrap() == 0);
@@ -163,6 +165,9 @@ mod test {
         // add second key
         assert!(lbf.add(key1.clone()).unwrap() == 2);
         assert!(lbf.add(key2.clone()).unwrap() == 1);
+
+        assert!(lbf.size() == 2);
+
         assert!(lbf.contains(&key1).unwrap() == 2);
         assert!(lbf.contains(&key2).unwrap() == 1);
         assert!(lbf.contains(&key3).unwrap() == 0);
@@ -171,17 +176,18 @@ mod test {
         assert!(lbf.add(key1.clone()).unwrap() == 3);
         assert!(lbf.add(key2.clone()).unwrap() == 2);
         assert!(lbf.add(key3.clone()).unwrap() == 1);
+
+        assert!(lbf.size() == 3);
+
         assert!(lbf.contains(&key1).unwrap() == 3);
         assert!(lbf.contains(&key2).unwrap() == 2);
         assert!(lbf.contains(&key3).unwrap() == 1);
-
-        assert!(lbf.size() == 3);
 
         lbf.flush().unwrap();
     }
 
     fn create_bloom_filter(params : &bloom_filter_params, index : i32) -> bloom_bloomfilter {
-        let mut map : bloom_bitmap = bloom_bitmap::from_filename(format!("map{}.bmp", index).as_slice(), 1000000, true, bitmap_mode::NEW_BITMAP).unwrap();
+        let mut map : bloom_bitmap = bloom_bitmap::from_filename(format!("map{}.bmp", index).as_slice(), params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
 
         return bloom_bloomfilter::new(map, params.k_num, true);
     }
