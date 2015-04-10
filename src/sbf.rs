@@ -5,27 +5,30 @@ extern crate libc;
 #[repr(C, packed)]
 pub struct bloom_sbf_params {
     initial_capacityv : u64,
-    fp_probability : double,
+    fp_probability : f64,
     scale_size : u32,
-    probability_reduction : double
+    probability_reduction : f64
 };
 
-/*
 #[repr(C)]
 pub struct bloom_sbf(c_void) {
     params : bloom_sbf_params,
     bloom_sbf_callback callback,
-    callback_input : *void,
+    callback_input : [void],
     num_filters : u32,
-    bloom_bloomfilter **filters,
-    dirty_filters : *mut char,
-    capacities : *u64
+    bloom_bloomfilter [bloom_bloomfilter],
+    dirty_filters : [u8],
+    capacities : [u64]
 };
-*/
-#[repr(C)]
-pub struct bloom_sbf(c_void);
     
 impl bloom_sbf {
+    pub fn sbf_from_filters(bloom_sbf_params *params,
+                     bloom_sbf_callback cb,
+                     void *cb_in,
+                     uint32_t num_filters,
+                     bloom_bloomfilter **filters,
+                     bloom_sbf *sbf)
+    
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
         return Ok(false);
     }
