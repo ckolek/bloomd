@@ -4,12 +4,12 @@ use std::{ffi};
 use bloom::bloom_bloomfilter;
 
 #[repr(C)]
-pub struct bloom_lbf<'a> {
+pub struct bloom_lbf {
     num_filters : u32,
-    filters : Vec<bloom_bloomfilter<'a>>
+    filters : Vec<bloom_bloomfilter>
 }
 
-impl<'a> bloom_lbf<'a> {
+impl bloom_lbf {
     fn add(&mut self, key : String) -> i32 {
         let mut index : i32 = 0;
 
@@ -58,7 +58,7 @@ impl<'a> bloom_lbf<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for bloom_lbf<'a> {
+impl Drop for bloom_lbf {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
             drop(filter);

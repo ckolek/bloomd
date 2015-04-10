@@ -13,39 +13,39 @@ pub enum bitmap_mode {
 }
 
 #[repr(C)]
-pub struct bloom_bitmap<'a> {
+pub struct bloom_bitmap {
     mode        : bitmap_mode,
     fileno      : i32,
     size        : u64,
-    mmap        : &'a [u8],
-    dirty_pages : &'a [u8]
+    mmap        : Vec<i8>,
+    dirty_pages : Vec<i8>
 }
 
-impl<'a> bloom_bitmap<'a> {
-    pub fn new(mode : bitmap_mode, fileno : i32, size : u64, mmap : &'a [u8], dirty_pages : &'a [u8]) -> Self {
-        return bloom_bitmap { mode: mode, fileno: fileno, size: size, mmap: mmap, dirty_pages: dirty_pages };
+impl bloom_bitmap {
+    fn new(mode : bitmap_mode, fileno : i32, size : u64) -> Self {
+        return bloom_bitmap { mode: mode, fileno: fileno, size: size, mmap: Vec::with_capacity(size as usize), dirty_pages: Vec::with_capacity(size as usize) };
     }
 
-    pub fn from_file(fileno : i32, len : u64, mode : bitmap_mode) -> Self {
-        let mut map : bloom_bitmap<'a> = bloom_bitmap::new(mode, fileno, len, &[0; 0], &[0; 0]);
+    pub fn from_file(fileno : i32, len : u64, mode : bitmap_mode) -> Result<Self, ()> {
+        let mut map : bloom_bitmap = bloom_bitmap::new(mode, fileno, len);
 
-        unsafe {
-            externals::bitmap_from_file(fileno, len, mode, &mut map as *mut bloom_bitmap);
+        if unsafe { externals::bitmap_from_file(fileno, len, mode, &mut map as *mut bloom_bitmap) } < 0 {
+            return Err(());
         }
 
-        return map;
+        return Ok(map);
     }
 
-    pub fn from_filename(filename : &str, len : u64, create : bool, mode : bitmap_mode) -> Self {
-        let mut map : bloom_bitmap<'a> = bloom_bitmap::new(mode, 0, len, &[0; 0], &[0; 0]);
+    pub fn from_filename(filename : &str, len : u64, create : bool, mode : bitmap_mode) -> Result<Self, ()> {
+        let mut map : bloom_bitmap  = bloom_bitmap::new(mode, 0, len);
 
         let filename : ffi::CString = ffi::CString::from_slice(filename.as_bytes());
 
-        unsafe {            
-            externals::bitmap_from_filename(filename.as_ptr(), len, create as i32, mode, &mut map as *mut bloom_bitmap);
+        if unsafe { externals::bitmap_from_filename(filename.as_ptr(), len, create as i32, mode, &mut map as *mut bloom_bitmap) } < 0 {
+            return Err(());
         }
 
-        return map;
+        return Ok(map);
     }
 
     pub fn flush(&mut self) -> Result<(), ()> {
@@ -58,7 +58,7 @@ impl<'a> bloom_bitmap<'a> {
 }
 
 #[unsafe_destructor]
-impl<'a> Drop for bloom_bitmap<'a> {
+impl Drop for bloom_bitmap {
     fn drop(&mut self) {
         unsafe { externals::bitmap_close(self as *mut bloom_bitmap) };
     }
@@ -77,5 +77,14 @@ mod externals {
         pub fn bitmap_flush(map : *mut bloom_bitmap) -> c_int;
 
         pub fn bitmap_close(map : *mut bloom_bitmap) -> c_int; 
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{bitmap_mode, bloom_bitmap};
+
+    #[test]
+    fn test() {
     }
 }

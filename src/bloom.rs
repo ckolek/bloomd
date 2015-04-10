@@ -11,7 +11,7 @@ pub struct bloom_filter_header {
     magic : u32,
     k_num : u32,
     count : u64,
-    __buf : [u8; 496]
+    __buf : [i8; 496]
 }
 
 impl bloom_filter_header {
@@ -21,15 +21,15 @@ impl bloom_filter_header {
 }
 
 #[repr(C)]
-pub struct bloom_bloomfilter<'a> {
+pub struct bloom_bloomfilter {
     header      : bloom_filter_header,
-    map         : bloom_bitmap<'a>,
+    map         : bloom_bitmap,
     offset      : u64,
     bitmap_size : u64
 }
 
-impl<'a> bloom_bloomfilter<'a> {
-    pub fn new(mut map : bloom_bitmap<'a>, k_num : u32, new_filter : bool) -> Self {
+impl bloom_bloomfilter {
+    pub fn new(mut map : bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
         unsafe {
             let filter_ptr : *mut bloom_bloomfilter = malloc(mem::size_of::<bloom_bloomfilter>() as size_t) as *mut bloom_bloomfilter;
 
@@ -74,6 +74,15 @@ impl<'a> bloom_bloomfilter<'a> {
     }
 }
 
+#[unsafe_destructor]
+impl Drop for bloom_bloomfilter {
+    fn drop(&mut self) {
+        drop(&mut self.map);
+
+        unsafe { externals::bf_close(self as *mut bloom_bloomfilter) };
+    }
+}
+
 #[repr(C)]
 pub struct bloom_filter_params {
     bytes          : u64,
@@ -89,15 +98,6 @@ impl bloom_filter_params {
 
     fn new(bytes : u64, k_num : u32, capacity : u64, fp_probability : f64) -> Self {
         return bloom_filter_params { bytes: bytes, k_num: k_num, capacity: capacity, fp_probability: fp_probability };
-    }
-}
-
-#[unsafe_destructor]
-impl<'a> Drop for bloom_bloomfilter<'a> {
-    fn drop(&mut self) {
-        drop(&mut self.map);
-
-        unsafe { externals::bf_close(self as *mut bloom_bloomfilter) };
     }
 }
 
@@ -188,7 +188,8 @@ mod externals {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_filter_params, size_for_capacity_prob, ideal_k_num};
+    use super::{bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
+    use bitmap::{bitmap_mode, bloom_bitmap};
 
     #[test]
     fn test() {
@@ -196,9 +197,38 @@ mod tests {
         params.capacity = 1000000;
         params.fp_probability = 0.001;
 
-        size_for_capacity_prob(&mut params);
-        ideal_k_num(&mut params);
+        size_for_capacity_prob(&mut params).unwrap();
+        ideal_k_num(&mut params).unwrap();
 
-        
+        println!("bytes: {}, k_num: {}", params.bytes, params.k_num);
+
+        let mut map : bloom_bitmap = bloom_bitmap::from_filename("map1.bmp", 1000000, true, bitmap_mode::NEW_BITMAP).unwrap();
+
+        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(map, params.k_num, true);
+
+        let key1 : String = String::from_str("abc");
+        let key2 : String = String::from_str("def");
+        let key3 : String = String::from_str("ghi");
+
+        // add first key
+        assert!(filter.add(key1.clone()).unwrap());
+        assert!(filter.contains(&key1).unwrap());
+        assert!(!filter.contains(&key2).unwrap());
+        assert!(!filter.contains(&key3).unwrap());
+
+        // add second key
+        assert!(!filter.add(key1.clone()).unwrap());
+        assert!(filter.add(key2.clone()).unwrap());
+        assert!(filter.contains(&key1).unwrap());
+        assert!(filter.contains(&key2).unwrap());
+        assert!(!filter.contains(&key3).unwrap());
+
+        // add third key
+        assert!(!filter.add(key1.clone()).unwrap());
+        assert!(!filter.add(key2.clone()).unwrap());
+        assert!(filter.add(key3.clone()).unwrap());
+        assert!(filter.contains(&key1).unwrap());
+        assert!(filter.contains(&key2).unwrap());
+        assert!(filter.contains(&key3).unwrap());
     }
 }
