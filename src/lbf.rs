@@ -1,16 +1,15 @@
-
 extern crate libc;
 
 use std::{ffi};
 use bloom::bloom_bloomfilter;
 
 #[repr(C)]
-pub struct bloom_lbf {
+pub struct bloom_lbf<'a> {
     num_filters : u32,
-    filters : Vec<bloom_bloomfilter>
+    filters : Vec<bloom_bloomfilter<'a>>
 }
 
-impl bloom_lbf {
+impl<'a> bloom_lbf<'a> {
     fn add(&mut self, key : String) -> i32 {
         let mut index : i32 = 0;
 
@@ -58,7 +57,8 @@ impl bloom_lbf {
     }
 }
 
-impl Drop for bloom_lbf {
+#[unsafe_destructor]
+impl<'a> Drop for bloom_lbf<'a> {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
             drop(filter);
@@ -71,7 +71,7 @@ pub extern "C" fn lbf_add(lbf : *mut bloom_lbf, key : &str) -> i32 {
 }
 
 pub extern "C" fn lbf_contains(lbf : *mut bloom_lbf, key : &str) -> i32 {
-    return unsafe { (*lbf).contains(String::from_str(key)) };
+    return unsafe { (*lbf).contains(&String::from_str(key)) };
 }
 
 pub extern "C" fn lbf_size(lbf : *mut bloom_lbf) -> u64 {
@@ -79,9 +79,10 @@ pub extern "C" fn lbf_size(lbf : *mut bloom_lbf) -> u64 {
 }
 
 pub extern "C" fn lbf_flush(lbf : *mut bloom_lbf) -> i32 {
-    return 0;
+    return unsafe { (*lbf).flush() };
 }
 
 pub extern "C" fn lbf_close(lbf : *mut bloom_lbf) -> i32 {
-    return 0;
+    unsafe { drop(&mut *lbf) };
+    return 1;
 }
