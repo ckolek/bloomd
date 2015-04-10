@@ -83,8 +83,4 @@ mod externals {
 #[cfg(test)]
 mod tests {
     use super::{bitmap_mode, bloom_bitmap};
-
-    #[test]
-    fn test() {
-    }
 }

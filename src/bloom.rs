@@ -21,28 +21,37 @@ impl bloom_filter_header {
 }
 
 #[repr(C)]
-pub struct bloom_bloomfilter {
-    header      : bloom_filter_header,
-    map         : bloom_bitmap,
+pub struct bloom_bloomfilter<'a> {
+    header      : &'a bloom_filter_header,
+    map         : &'a mut bloom_bitmap,
     offset      : u64,
     bitmap_size : u64
 }
 
-impl bloom_bloomfilter {
-    pub fn new(mut map : bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
-        unsafe {
-            let filter_ptr : *mut bloom_bloomfilter = malloc(mem::size_of::<bloom_bloomfilter>() as size_t) as *mut bloom_bloomfilter;
-
-            externals::bf_from_bitmap(&mut map as *mut bloom_bitmap, k_num, new_filter as i32, filter_ptr);
-
-            return ptr::read(filter_ptr);
+impl<'a> bloom_bloomfilter<'a> {
+    pub fn new(header : &'a bloom_filter_header, map : &'a mut bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
+        let mut filter : bloom_bloomfilter = bloom_bloomfilter {
+            header: header,
+            map: map,
+            offset: 0,
+            bitmap_size: 0
         };
+
+        unsafe {
+            externals::bf_from_bitmap(filter.map as *mut bloom_bitmap, k_num, new_filter as i32, &mut filter as *mut bloom_bloomfilter);
+        };
+
+        return filter;
     }
 
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
-        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
+        println!("add_key: {}", key);
 
+        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
         let result : i32 = unsafe { externals::bf_add(self as *mut bloom_bloomfilter, key.as_ptr()) };
+
+        println!("add_result: {}", result);
+
         if result < 0 {
             return Err(());
         } else {
@@ -51,9 +60,14 @@ impl bloom_bloomfilter {
     }
 
     pub fn contains(&self, key : &String) -> Result<bool, ()> {
+        println!("contains_key: {}", key);
+
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
         let result : i32 = unsafe { externals::bf_contains(self as *const bloom_bloomfilter, key.as_ptr()) };
+
+        println!("contains_result: {}", result);
+
         if result < 0 {
             return Err(());
         } else {
@@ -75,28 +89,26 @@ impl bloom_bloomfilter {
 }
 
 #[unsafe_destructor]
-impl Drop for bloom_bloomfilter {
+impl<'a> Drop for bloom_bloomfilter<'a> {
     fn drop(&mut self) {
-        drop(&mut self.map);
-
         unsafe { externals::bf_close(self as *mut bloom_bloomfilter) };
     }
 }
 
 #[repr(C)]
 pub struct bloom_filter_params {
-    bytes          : u64,
-    k_num          : u32,
-    capacity       : u64,
-    fp_probability : f64
+    pub bytes          : u64,
+    pub k_num          : u32,
+    pub capacity       : u64,
+    pub fp_probability : f64
 }
 
 impl bloom_filter_params {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         return bloom_filter_params::new(0, 0, 0, 0.0);
     }
 
-    fn new(bytes : u64, k_num : u32, capacity : u64, fp_probability : f64) -> Self {
+    pub fn new(bytes : u64, k_num : u32, capacity : u64, fp_probability : f64) -> Self {
         return bloom_filter_params { bytes: bytes, k_num: k_num, capacity: capacity, fp_probability: fp_probability };
     }
 }
@@ -188,7 +200,7 @@ mod externals {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
+    use super::{bloom_filter_header, bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
     use bitmap::{bitmap_mode, bloom_bitmap};
 
     #[test]
@@ -204,7 +216,9 @@ mod tests {
 
         let mut map : bloom_bitmap = bloom_bitmap::from_filename("map1.bmp", 1000000, true, bitmap_mode::NEW_BITMAP).unwrap();
 
-        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(map, params.k_num, true);
+        let header : bloom_filter_header = bloom_filter_header::new(0, params.k_num, 0);
+
+        let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(&header, &mut map, params.k_num, true);
 
         let key1 : String = String::from_str("abc");
         let key2 : String = String::from_str("def");
@@ -230,5 +244,9 @@ mod tests {
         assert!(filter.contains(&key1).unwrap());
         assert!(filter.contains(&key2).unwrap());
         assert!(filter.contains(&key3).unwrap());
+
+        assert!(filter.size() == 3);
+
+        filter.flush().unwrap();
     }
 }

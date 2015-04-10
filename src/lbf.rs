@@ -3,12 +3,12 @@ extern crate libc;
 use bloom::bloom_bloomfilter;
 
 #[repr(C)]
-pub struct bloom_lbf {
+pub struct bloom_lbf<'a> {
     num_filters : u32,
-    filters : Vec<bloom_bloomfilter>
+    filters : Vec<bloom_bloomfilter<'a>>
 }
 
-impl bloom_lbf {
+impl<'a> bloom_lbf<'a> {
     fn add(&mut self, key : String) -> i32 {
         let mut index : i32 = 0;
 
@@ -57,7 +57,7 @@ impl bloom_lbf {
 }
 
 #[unsafe_destructor]
-impl Drop for bloom_lbf {
+impl<'a> Drop for bloom_lbf<'a> {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
             drop(filter);
