@@ -2,6 +2,7 @@
 
 extern crate libc;
 
+use std::ffi;
 use bitmap::bloom_bitmap;
 
 #[repr(C, packed)]
@@ -13,33 +14,54 @@ pub struct bloom_filter_header {
 }
 
 #[repr(C)]
-pub struct bloom_bloomfilter {
+pub struct bloom_bloomfilter<'a> {
     header      : bloom_filter_header,
-    map         : bloom_bitmap,
+    map         : bloom_bitmap<'a>,
     offset      : u64,
     bitmap_size : u64
 }
 
-impl bloom_bloomfilter {
+impl<'a> bloom_bloomfilter<'a> {
     pub fn add(&mut self, key : String) -> Result<bool, ()> {
-        return Ok(false);
+        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
+
+        let result : i32 = unsafe { externals::bf_add(self as *mut bloom_bloomfilter, key.as_ptr()) };
+        if result < 0 {
+            return Err(());
+        } else {
+            return Ok(result > 0);
+        }
     }
 
     pub fn contains(&self, key : &String) -> Result<bool, ()> {
-        return Ok(false);
+        let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
+
+        let result : i32 = unsafe { externals::bf_contains(self as *const bloom_bloomfilter, key.as_ptr()) };
+        if result < 0 {
+            return Err(());
+        } else {
+            return Ok(result > 0);
+        }
     }
 
     pub fn size(&self) -> u64 {
-        return 0;
+        return unsafe { externals::bf_size(self as *const bloom_bloomfilter) };
     }
 
     pub fn flush(&mut self) -> Result<(), ()> {
-        return Ok(());
+        if unsafe { externals::bf_flush(self as *mut bloom_bloomfilter) } < 0 {
+            return Err(());
+        } else {
+            return Ok(());
+        }
     }
 }
 
-impl Drop for bloom_bloomfilter {
+#[unsafe_destructor]
+impl<'a> Drop for bloom_bloomfilter<'a> {
     fn drop(&mut self) {
+        drop(&mut self.map);
+
         unsafe { externals::bf_close(self as *mut bloom_bloomfilter) };
     }
 }
