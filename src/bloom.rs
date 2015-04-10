@@ -197,6 +197,7 @@ mod externals {
 mod tests {
     use super::{bloom_filter_header, bloom_bloomfilter, bloom_filter_params, size_for_capacity_prob, ideal_k_num};
     use bitmap::{bitmap_mode, bloom_bitmap};
+    use filter;
     use filter::BloomFilter;
 
     static BITMAP_FILE : &'static str = "map.bmp";
@@ -216,33 +217,8 @@ mod tests {
 
         let mut filter : bloom_bloomfilter = bloom_bloomfilter::new(map, params.k_num, true);
 
-        let key1 : String = String::from_str("abc");
-        let key2 : String = String::from_str("def");
-        let key3 : String = String::from_str("ghi");
-
-        // add first key
-        assert!(filter.add(key1.clone()).unwrap());
-        assert!(filter.contains(&key1).unwrap());
-        assert!(!filter.contains(&key2).unwrap());
-        assert!(!filter.contains(&key3).unwrap());
-
-        // add second key
-        assert!(!filter.add(key1.clone()).unwrap());
-        assert!(filter.add(key2.clone()).unwrap());
-        assert!(filter.contains(&key1).unwrap());
-        assert!(filter.contains(&key2).unwrap());
-        assert!(!filter.contains(&key3).unwrap());
-
-        // add third key
-        assert!(!filter.add(key1.clone()).unwrap());
-        assert!(!filter.add(key2.clone()).unwrap());
-        assert!(filter.add(key3.clone()).unwrap());
-        assert!(filter.contains(&key1).unwrap());
-        assert!(filter.contains(&key2).unwrap());
-        assert!(filter.contains(&key3).unwrap());
-
-        assert!(filter.size() == 3);
-
-        filter.flush().unwrap();
+        filter::test_filter(Box::new(filter),
+            &[[true, false, false], [false, true, false], [false, false, true]],
+            &[[true, false, false], [true, true, false], [true, true, true]]);
     }
 }
