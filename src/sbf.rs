@@ -62,6 +62,14 @@ impl bloom_sbf {
             return Ok(());
         }
     }
+    
+    pub fn sbf_total_capacity(&self) -> u64 {
+        return unsafe { externals::sbf_total_capacity(self as *const bloom_sbf) };
+    }
+
+    pub fn sbf_total_byte_size(&self) -> u64 {
+        return unsafe { externals::sbf_total_byte_size(self as *const bloom_sbf) };
+    }
 }
 
 impl Drop for bloom_sbf {
