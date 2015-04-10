@@ -14,7 +14,7 @@ pub struct bloom_sbf_params {
 pub struct bloom_sbf {
     params : bloom_sbf_params,
     callback : bloom_sbf_callback,
-    callback_input : [void],
+    callback_input : c_void,
     num_filters : u32,
     filters [bloom_bloomfilter],
     dirty_filters : [u8],
@@ -26,7 +26,7 @@ pub type bloom_sbf_callback = extern fn (c_void, c_ulong, bloom_bitmap) -> c_int
 impl bloom_sbf {
     pub fn sbf_new(params : bloom_sbf_params,
                    cb : bloom_sbf_callback,
-                   cb_in : [void],
+                   cb_in : c_void,
                    num_filters : u32,
                    filters : [bloom_bloomfilter],
                    dirty_filters : [u8],
@@ -44,7 +44,7 @@ impl bloom_sbf {
     
     pub fn sbf_from_filters(params : bloom_sbf_params,
                             cb : bloom_sbf_callback,
-                            cb_in : [void],
+                            cb_in : c_void,
                             num_filters : u32,
                             filters : [bloom_bloomfilter]) -> Self {
         let sbf : bloom_sbf = sbf_new(params, cb, cb_in, num_filters, filters, &[0; 0], &[0; 0]);
@@ -108,7 +108,7 @@ impl Drop for bloom_sbf {
 mod externals {
     use super::libc::{c_char, c_int, c_uint, c_ulong, c_double};
     use bloom::bloom_bloomfilter;
-    use super::bloom_sbf
+    use super::bloom_sbf;
     use bitmap::bloom_bitmap;
 
     #[link(name = "bloom")]
