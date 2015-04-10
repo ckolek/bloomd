@@ -157,6 +157,8 @@ mod externals {
     use bitmap::bloom_bitmap;
 
     #[link(name = "bloom")]
+    #[link(name = "spooky")]
+    #[link(name = "murmur")]
     extern {
         pub fn bf_from_bitmap(map : *mut bloom_bitmap, k_num : c_uint, new_filter : c_int, filter : *mut bloom_bloomfilter) -> c_int;
 
@@ -186,11 +188,17 @@ mod externals {
 
 #[cfg(test)]
 mod tests {
-    use super::bloom_filter_params;
+    use super::{bloom_filter_params, size_for_capacity_prob, ideal_k_num};
 
     #[test]
     fn test() {
         let mut params : bloom_filter_params = bloom_filter_params::empty();
-        params.k_num = 1;
+        params.capacity = 1000000;
+        params.fp_probability = 0.001;
+
+        size_for_capacity_prob(&mut params);
+        ideal_k_num(&mut params);
+
+        
     }
 }
