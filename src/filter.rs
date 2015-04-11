@@ -25,12 +25,6 @@ pub mod test {
         return params;
     }
 
-    pub fn create_bloom_filter<'a>(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter<'a> {
-        let  map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
-
-        return bloom_bloomfilter::new(map, params.k_num, true);
-    }
-
     pub fn test_filter<T : Eq>(mut filter : Box<BloomFilter<T>>, add_values : &[[T; 3]], contains_values : &[[T; 3]]) {
         let key1 : String = String::from_str("abc");
         let key2 : String = String::from_str("def");

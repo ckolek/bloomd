@@ -9,6 +9,7 @@ use std::str::StrExt;
 static MESSAGE_BAD_ARGS : &'static str = "Client Error: Bad arguments\r\n";
 static MESSAGE_DONE     : &'static str = "Done\r\n";
 static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
+static MESSAGE_NO_EXIST   : &'static str = "Filter does not exist\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
@@ -19,6 +20,10 @@ pub fn bulk(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
     
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("bulk {} {}\r\n", filter_name, args.connect(" "));
 }
@@ -31,6 +36,10 @@ pub fn check(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("check {} {}\r\n", filter_name, key_name);
 }
@@ -51,7 +60,6 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
     }
     
     for arg in args.iter() {
-        
         if arg.starts_with("capacity=") {
             let mut pieces : Vec<&str> = arg.split_str("=").collect();
             match FromStr::from_str(pieces.pop().unwrap()) {
@@ -70,7 +78,7 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
             return String::from_str(MESSAGE_BAD_ARGS);
         }
     }
-    
+
     return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, probability);
 }
 
@@ -81,6 +89,10 @@ pub fn close(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("close {}\r\n", filter_name);
 }
@@ -93,6 +105,10 @@ pub fn clear(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     
     let filter_name  : String = String::from_str(args[0]);
     
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("clear {}\r\n", filter_name);
 }
 
@@ -103,6 +119,10 @@ pub fn drop(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("drop {}\r\n", filter_name);
 }
@@ -115,6 +135,10 @@ pub fn info(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
     
     // Get the arguments
     let filter_name : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("info {}\r\n", filter_name);
 }
@@ -137,6 +161,10 @@ pub fn multi(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("multi {} {}\r\n", filter_name, args.connect(" "));
 }
 
@@ -150,6 +178,10 @@ pub fn flush(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("flush {}\r\n", filter_name);
 }
 
@@ -161,6 +193,10 @@ pub fn set(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut 
     
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("set {} {}\r\n", filter_name, key_name);
 }

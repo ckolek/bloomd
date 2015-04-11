@@ -20,9 +20,6 @@ use std::io::{BufferedReader, IoError, IoResult};
 use std::io::fs::File;
 use std::fmt;
 
-#[cfg(test)]
-use test::Bencher;
-
 pub struct IniFile {
 	/// Comments on sections and options
 	comments: HashMap<String, HashMap<String, String>>,
@@ -315,9 +312,10 @@ impl fmt::String for IniFile {
 	}
 }
 
+/*
 #[cfg(test)]
 mod tests {
-	use std::collections::hashmap::HashMap;
+    use std::collections::HashMap;
 	use std::io::BufferedReader;
 	use std::io::fs;
 	use std::io::fs::File;
@@ -345,7 +343,7 @@ mod tests {
 		let expected = 5;
 		let sections = ini.sections();
 		let found = sections.len();
-		assert!(expected == found, format!("{:u} sections are expected, not {:u}.", expected, found));
+		assert!(expected == found, format!("{} sections are expected, not {}.", expected, found));
 	}
 	#[test]
 	fn sections_names() {
@@ -586,10 +584,4 @@ mod tests {
 		}
 	}
 }
-#[bench]
-fn bench_inifile(b: &mut Bencher) {
-	b.iter(|| {
-		let mut ini = IniFile::new();
-		ini.read("data/config.ini");
-	});
-}
+*/
