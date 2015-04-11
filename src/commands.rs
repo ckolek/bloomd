@@ -1,7 +1,7 @@
-use config::BloomConfig;
+use config::{BloomConfig, BloomFilterConfig};
 use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter_params};
 use lbf::bloom_lbf;
-use wrappers::Filters;
+use wrappers::{Filters, BloomFilter};
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
@@ -84,12 +84,17 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
     }
     
     // create the lbf and add it to the filters
-    let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
-    let lbf : bloom_lbf = bloom_lbf::new(params, &filter_name, Vec::new());
+    let params : bloom_filter_params = create_bloom_filter_params(capacity.clone(), probability.clone());
+    let filter_params : BloomFilterConfig = BloomFilterConfig::new(capacity, probability);
     
+    let lbf : bloom_lbf = bloom_lbf::new(params, &filter_name, Vec::new());
+    let filter : BloomFilter = BloomFilter::new(config, 
+                                                filter_params,
+                                                format!("{}.{}", config.data_dir, filter_name),
+                                                lbf);
     let write_filters : RwLockWriteGuard<Filters<'static>> = filters.write().unwrap();
     
-    write_filters.filters.insert(filter_name, lbf);
+    write_filters.filters.insert(filter_name, filter);
     return String::from_str(MESSAGE_DONE);
 }
 

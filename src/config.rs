@@ -132,3 +132,19 @@ pub struct BloomFilterConfig {
     pub capacity              : u64, // Total capacity
     pub bytes                 : u64, // Total byte size
 }
+
+// TODO: Work out what other options here
+impl BloomFilterConfig {
+    pub fn new(initial_capacity : u64, default_probability : f64) -> Self {
+        return BloomFilterConfig {
+            initial_capacity      : initial_capacity,
+            default_probability   : default_probability,
+            scale_size            : 0,
+            probability_reduction : default_probability,
+            in_memory             : true,
+            size                  : 0,
+            capacity              : initial_capacity,
+            bytes                 : 0
+        }
+    }
+}

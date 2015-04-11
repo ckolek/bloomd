@@ -12,12 +12,37 @@ pub struct FilterCounters {
     page_outs    : u64
 }
 
+impl FilterCounters {
+    pub fn new() -> Self {
+        return FilterCounters {
+            check_hits   : 0,
+            check_misses : 0,
+            set_hits     : 0,
+            set_misses   : 0,
+            page_ins     : 0,
+            page_outs    : 0
+        };
+    }
+}
+
 pub struct BloomFilter<'a> {
     config        : &'a BloomConfig,          // bloomd configuration
     filter_config : BloomFilterConfig,       // Filter-specific config
     full_path     : String,                    // Path to our data
     lbf_lock      : Arc<Mutex<bloom_lbf<'a>>>, // Protects faulting in the filter
     counters      : FilterCounters             // Counters
+}
+
+impl<'a> BloomFilter<'a> {
+    pub fn  new(config : &'a BloomConfig, filter_config : BloomFilterConfig, full_path : String, lbf : bloom_lbf<'a>) -> Self {
+        return BloomFilter {
+            config        : config,
+            filter_config : filter_config,
+            full_path     : full_path,
+            lbf_lock      : Arc::new(Mutex::new(lbf)),
+            counters      : FilterCounters::new()
+        };
+    }
 }
 
 // Wrapper for dealing with RwLock
