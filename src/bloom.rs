@@ -4,7 +4,7 @@ extern crate libc;
 
 use self::libc::c_char;
 use std::ffi;
-use bitmap::bloom_bitmap;
+use bitmap::{bitmap_mode, bloom_bitmap};
 use filter::BloomFilter;
 
 #[repr(C, packed)]
@@ -193,9 +193,15 @@ mod externals {
     }
 }
 
+pub fn create_bloom_filter<'a>(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter<'a> {
+    let  map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
+
+    return bloom_bloomfilter::new(map, params.k_num, true);
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{bloom_bloomfilter, bloom_filter_params};
+    use super::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
     use filter;
 
     static BITMAP_FILE : &'static str = "map.bmp";
@@ -203,7 +209,7 @@ mod tests {
     #[test]
     fn test() {
         let params : bloom_filter_params = filter::test::create_bloom_filter_params();
-        let filter : bloom_bloomfilter = filter::test::create_bloom_filter(&params, BITMAP_FILE);
+        let filter : bloom_bloomfilter = create_bloom_filter(&params, BITMAP_FILE);
 
         filter::test::test_filter(Box::new(filter),
             &[[true, false, false], [false, true, false], [false, false, true]],

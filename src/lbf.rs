@@ -1,17 +1,26 @@
 extern crate libc;
 
 use filter::BloomFilter;
-use bloom::bloom_bloomfilter;
+use bloom::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
 
 #[repr(C)]
 pub struct bloom_lbf<'a> {
+    filter_params : bloom_filter_params,
+    filter_name : String,
     num_filters : u32,
     filters : Vec<bloom_bloomfilter<'a>>
 }
 
-impl<'a> bloom_lbf<'a> {
-    pub fn new(filters : Vec<bloom_bloomfilter<'a>>) -> Self {
-        return bloom_lbf { num_filters: filters.len() as u32, filters: filters };
+impl<'a> bloom_lbf<'a> {    
+    pub fn new(filter_params : bloom_filter_params,
+               filter_name : &String,
+               filters : Vec<bloom_bloomfilter<'a>>) -> Self {
+        return bloom_lbf {
+            filter_params: filter_params,
+            filter_name: filter_name.clone(),
+            num_filters: filters.len() as u32,
+            filters: Vec::new()
+        };
     }
 }
 
@@ -19,6 +28,8 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
     fn add(&mut self, key : String) -> Result<u32, ()> {
         let mut index : u32 = 0;
 
+        // add to the first filter that doesn't have the key, then return how many
+        // layers we went down
         for ref mut filter in self.filters.iter_mut() {
             index += 1;
 
@@ -34,8 +45,18 @@ impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
                 Err(_) => return Err(())
             }
         }
-
-        return Ok(0);
+        
+        // If the key was in all the filters, make a new one
+        let mut filter : bloom_bloomfilter = create_bloom_filter(&self.filter_params, 
+            format!("{}-map{}.bmp", self.filter_name.as_slice(), self.num_filters).as_slice());
+        return match filter.add(key) {
+            Ok(_) => {
+                self.filters.push(filter);
+                self.num_filters += 1;
+                return Ok(self.num_filters);
+            },
+            Err(_) => Err(())
+        };
     }
 
     fn contains(&self, key : &String) -> Result<u32, ()> {
@@ -123,20 +144,13 @@ pub extern "C" fn lbf_close(lbf : *mut bloom_lbf) -> i32 {
 #[cfg(test)]
 mod tests {
     use filter;
-    use bloom::{bloom_filter_params, bloom_bloomfilter};
+    use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter};
     use lbf::bloom_lbf;
 
     #[test]
     fn test() {
         let params : bloom_filter_params = filter::test::create_bloom_filter_params();
-
-        let mut filters : Vec<bloom_bloomfilter> = Vec::new();
-
-        for i in (0..3) {
-            filters.push(filter::test::create_bloom_filter(&params, format!("lbf-map{}.bmp", i).as_slice()));
-        }
-
-        let lbf : bloom_lbf = bloom_lbf::new(filters);
+        let lbf : bloom_lbf = bloom_lbf::new(params, String::from_str("test"), Vec::new());
 
         filter::test::test_filter(Box::new(lbf),
             &[[1, 0, 0], [2, 1, 0], [3, 2, 1]],

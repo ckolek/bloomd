@@ -8,6 +8,7 @@ use std::str::StrExt;
 static MESSAGE_BAD_ARGS : &'static str = "Client Error: Bad arguments\r\n";
 static MESSAGE_DONE     : &'static str = "Done\r\n";
 static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
+static MESSAGE_NO_EXIST   : &'static str = "Filter does not exist\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
@@ -18,6 +19,10 @@ pub fn bulk(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> S
     
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("bulk {} {}\r\n", filter_name, args.connect(" "));
 }
@@ -30,6 +35,10 @@ pub fn check(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> 
     
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("check {} {}\r\n", filter_name, key_name);
 }
@@ -50,7 +59,6 @@ pub fn create(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) ->
     }
     
     for arg in args.iter() {
-        
         if arg.starts_with("capacity=") {
             let mut pieces : Vec<&str> = arg.split_str("=").collect();
             capacity = match FromStr::from_str(pieces.pop().unwrap()) {
@@ -70,6 +78,8 @@ pub fn create(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) ->
         }
     }
     
+    
+    
     return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, prob);
 }
 
@@ -80,6 +90,10 @@ pub fn close(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> 
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("close {}\r\n", filter_name);
 }
@@ -92,6 +106,10 @@ pub fn clear(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> 
     
     let filter_name  : String = String::from_str(args[0]);
     
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("clear {}\r\n", filter_name);
 }
 
@@ -102,6 +120,10 @@ pub fn drop(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> S
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("drop {}\r\n", filter_name);
 }
@@ -114,6 +136,10 @@ pub fn info(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> S
     
     // Get the arguments
     let filter_name : String = String::from_str(args[0]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("info {}\r\n", filter_name);
 }
@@ -136,6 +162,10 @@ pub fn multi(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> 
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("multi {} {}\r\n", filter_name, args.connect(" "));
 }
 
@@ -149,6 +179,10 @@ pub fn flush(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> 
     }
     
     let filter_name  : String = String::from_str(args[0]);
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
+    
     return format!("flush {}\r\n", filter_name);
 }
 
@@ -160,6 +194,10 @@ pub fn set(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> St
     
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
+    
+    if !filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_NO_EXIST);
+    }
     
     return format!("set {} {}\r\n", filter_name, key_name);
 }
