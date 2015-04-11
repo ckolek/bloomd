@@ -165,11 +165,22 @@ pub fn list<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
     if args.len() != 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
-
+    let mut prefix : &str = "";
     let mut result : String = String::new();
-
+    
+    if args.len() == 1 {
+        prefix = args[0];
+    }
+    
     for (name, filter) in filters.iter() {
-        result.push_str(format!("{} {} {} {} {}\r\n", name, filter.filter_config.probability, filter.filter_config.bytes, filter.filter_config.capacity, filter.filter_config.size).as_slice());
+        if name.starts_with(prefix) {
+            result.push_str(format!("{} {} {} {} {}\r\n", 
+                                    name, 
+                                    filter.filter_config.probability, 
+                                    filter.filter_config.bytes, 
+                                    filter.filter_config.capacity, 
+                                    filter.filter_config.size).as_slice());
+        }
     }
     
     return result;
