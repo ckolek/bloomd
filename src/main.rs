@@ -27,7 +27,7 @@ mod wrappers;
 mod inifile;
 
 // ------------------------------------------------------------------
-const CONFIG_FILENAME         : &'static str = "bloomd.config";
+const CONFIG_FILENAME         : &'static str = "bloomd.ini";
 const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
 const MESSAGE_START           : &'static str = "START";
 const MESSAGE_END             : &'static str = "END";
