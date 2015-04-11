@@ -1,9 +1,3 @@
-#![crate_name="inifile"]
-#![crate_type = "lib"]
-#![license = "MIT"]
-#![desc = "Library for simple INI file management"]
-#![comment = "Example of library: INI file management"]
-#![feature(phase)]
 //! INI file management, partial implementation of Python API.
 //!
 //! Tested with rust-0.12-pre

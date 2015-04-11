@@ -92,6 +92,13 @@ impl bloom_config {
         if ini.has_section(INI_SECTION_BLOOMD.as_slice()) {
             for option in ini.options(String::from_str(INI_SECTION_BLOOMD)).iter() {
                 match option.as_slice() {
+                    INI_OPTION_PORT                  => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_PORT) },
+                    INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT) },
+                    INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT) },
+                    INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE) },
+                    INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL) },
+                    INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL) },
+                    INI_OPTION_WORKERS               => { config.worker_threads        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_WORKERS) }
                     INI_OPTION_INITIAL_CAPACITY      => { config.initial_capacity      = ini.get::<u64>(INI_SECTION_BLOOMD, INI_OPTION_INITIAL_CAPACITY) },
                     INI_OPTION_USE_MMAP              => { config.use_mmap              = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_USE_MMAP) },
                     INI_OPTION_IN_MEMORY             => { config.in_memory             = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_IN_MEMORY) },
@@ -99,13 +106,7 @@ impl bloom_config {
                     INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION) },
                     INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR) },
                     INI_OPTION_BIND_ADDRESS          => { config.bind_address          = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) },
-                    INI_OPTION_PORT                  => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_PORT) },
-                    INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT) },
-                    INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT) },
-                    INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE) },
-                    INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL) },
-                    INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL) },
-                    INI_IPTION_WORKERS               => { config.worker_threads        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_WORKERS) }
+                    _ => { panic!("Unknown option: {}", option) }
                 }
             }
         }

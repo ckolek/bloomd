@@ -1,8 +1,7 @@
-use wrappers::{bloom_filter, Filters};
-use std::collections::HashMap;
+use wrappers::Filters;
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
-use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use std::sync::RwLockReadGuard;
 use std::str::StrExt;
 
 // ------------------------------------------------------------------

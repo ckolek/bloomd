@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 use config::bloom_config;
-use wrappers::{bloom_filter, Filters};
+use wrappers::Filters;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
@@ -56,12 +56,11 @@ fn main() {
     use std::thread::Thread;
     
     //TODO: GET CONFIGS
-    let filters_orig : Arc<RwLock<Filters>> 
-            = Arc::new(RwLock::new(Filters::new()));
-    let listener = TcpListener::bind(format!("{}:{}", BIND_ADDRESS, BIND_TCP_PORT).as_slice());
+    let filters_orig : Arc<RwLock<Filters>> = Arc::new(RwLock::new(Filters::new()));
+    let listener = TcpListener::bind(format!("{}:{}", BIND_ADDRESS, BIND_TCP_PORT).as_slice()).unwrap();
     
     // bind the listener to the specified address
-    let mut acceptor = listener.listen();
+    let mut acceptor = listener.listen().unwrap();
 
     // Accept incoming connections, with a new connection for each 
     for stream in acceptor.incoming() {
