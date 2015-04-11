@@ -24,3 +24,11 @@ pub struct bloom_filter<'a> {
 pub struct Filters<'a> {
     pub filters : HashMap<String, bloom_filter<'a>>
 }
+
+impl<'a> Filters<'a> {
+    fn new() -> Self {
+        return Filters {
+            filters : HashMap::new()
+        };
+    }
+}

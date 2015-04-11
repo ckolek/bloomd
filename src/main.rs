@@ -56,7 +56,7 @@ fn main() {
     
     //TODO: GET CONFIGS
     let filters_orig : Arc<RwLock<Filters>> 
-            = Arc::new(RwLock::new(Filters { filters: HashMap::new() }));
+            = Arc::new(RwLock::new(Filters::new()));
     let listener = TcpListener::bind("127.0.0.1:8673");
     
     // bind the listener to the specified address
@@ -70,7 +70,7 @@ fn main() {
             Ok(stream) => {
                 Thread::spawn(move|| {
                     // connection made, now handle client
-                    handle_client(filters_ref, stream);
+                    handle_client(&filters_ref, stream);
                 });
             },
             Err(_) => { /* Could not connect */ }
@@ -79,7 +79,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<'a, S : Stream>(filters : Arc<RwLock<Filters<'a>>>, stream : S) {
+fn handle_client<'a, S : Stream>(filters : &Arc<RwLock<Filters<'a>>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -93,7 +93,7 @@ fn handle_client<'a, S : Stream>(filters : Arc<RwLock<Filters<'a>>>, stream : S)
         let chars_to_trim: &[char] = &[' ', '\n', '\r'];
         let trim_line : &str = line.as_slice().trim_matches(chars_to_trim);
 
-        let response : String = interpret_request(&filters, trim_line);
+        let response : String = interpret_request(filters, trim_line);
         buf_stream.write_str(response.as_slice()).unwrap();
 
         // Need to flush, or else we won't write to the client
