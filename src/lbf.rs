@@ -13,11 +13,11 @@ pub struct bloom_lbf<'a> {
 
 impl<'a> bloom_lbf<'a> {    
     pub fn new(filter_params : bloom_filter_params,
-               filter_name : &String,
+               filter_name : String,
                filters : Vec<bloom_bloomfilter<'a>>) -> Self {
         return bloom_lbf {
             filter_params: filter_params,
-            filter_name: filter_name.clone(),
+            filter_name: filter_name,
             num_filters: filters.len() as u32,
             filters: Vec::new()
         };
