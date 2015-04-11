@@ -44,7 +44,7 @@ struct BloomServer<'a> {
 
 impl<'a> BloomServer<'a> {
     fn new(config_filename : &str) -> Self {
-        return BloomServer { filters: HashMap::new() };
+        return BloomServer { config: bloom_config::from_filename(config_filename), filters: HashMap::new() };
     }
 
     fn start(&mut self) {
