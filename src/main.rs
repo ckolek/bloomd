@@ -82,7 +82,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<Filters<'static>>, stream : S) {
+fn handle_client<'a, S : Stream>(config: &'a BloomConfig, filters : &Arc<Filters<'a>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -107,7 +107,7 @@ fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<Filters<'stati
 }
     
 // Find which command
-fn interpret_request(config : &BloomConfig, filters : &Arc<Filters<'static>>, input : &str) -> String {
+fn interpret_request<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit

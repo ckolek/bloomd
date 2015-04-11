@@ -15,7 +15,7 @@ static MESSAGE_NO_EXIST   : &'static str = "Filter does not exist\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
-pub fn bulk(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn bulk<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -31,7 +31,7 @@ pub fn bulk(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : 
 }
 
 // Checks if a key is in a filter
-pub fn check(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn check<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -47,7 +47,7 @@ pub fn check(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args :
 }
 
 // Create a new filter
-pub fn create(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn create<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() == 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -94,13 +94,13 @@ pub fn create(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args 
     let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, in_memory, params.bytes, 0);
     let lbf : bloom_lbf = bloom_lbf::new(params, filter_name, Vec::new());
 
-    filters.insert_filter(filter_name, BloomFilter::new(config, filter_config, lbf));
+    filters.insert_filter(filter_name, BloomFilter::new(config, filter_config, RwLock::new(lbf)));
 
     return String::from_str(MESSAGE_DONE);
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)
-pub fn close(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn close<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -115,7 +115,7 @@ pub fn close(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args :
 }
 
 // Clears a filter from the lists (removes memory, left on disk)
-pub fn clear(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn clear<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -130,7 +130,7 @@ pub fn clear(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args :
 }
 
 // Drops a filter (deletes from disk)
-pub fn drop(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn drop<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
         if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -145,7 +145,7 @@ pub fn drop(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : 
 }
 
 // Gets info about filter
-pub fn info(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn info<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -161,7 +161,7 @@ pub fn info(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : 
 }
 
 // Lists all filters, or those matching a prefix
-pub fn list(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn list<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -176,7 +176,7 @@ pub fn list(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : 
 }
 
 // Checks if a list of keys are in a filter
-pub fn multi(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn multi<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -192,7 +192,7 @@ pub fn multi(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args :
 }
 
 // Flushes all filters, or just a specified one
-pub fn flush(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn flush<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() > 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -209,7 +209,7 @@ pub fn flush(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args :
 }
 
 // Sets an item in a filter
-pub fn set(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
+pub fn set<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
