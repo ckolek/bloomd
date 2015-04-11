@@ -27,6 +27,12 @@ pub struct BloomFilter<'a> {
     pub counters      : FilterCounters             // Counters
 }
 
+impl<'a> BloomFilter<'a> {
+    pub fn new(config : &'a BloomConfig, filter_config : BloomFilterConfig, lbf : bloom_lbf<'a>) -> Self {
+        return BloomFilter { config: config, filter_config: filter_config, lbf: RwLock::new(lbf), counters: FilterCounters::new() };
+    }
+}
+
 // Wrapper for dealing with RwLock
 pub struct Filters<'a> {
     mutex   : Mutex<u8>,
@@ -45,6 +51,12 @@ impl<'a> Filters<'a> {
         self.mutex.lock().unwrap();
 
         return self.filters.contains_key(filter_name);
+    }
+
+    pub fn insert_filter(&mut self, filter_name : String, filter : BloomFilter<'a>) {
+        self.mutex.lock().unwrap();
+
+        self.filters.insert(filter_name, filter);
     }
 
     pub fn iter(&self) -> Iter<String, BloomFilter<'a>> {

@@ -13,7 +13,7 @@ pub mod test {
 
     static FILTER_CAPACITY : u64 = 1000000;
     static FILTER_FP_PROBABILITY : f64 = 0.001;
-
+    
     pub fn create_bloom_filter_params() -> bloom_filter_params {
         let mut params : bloom_filter_params = bloom_filter_params::empty();
         params.capacity = FILTER_CAPACITY;

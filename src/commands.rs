@@ -1,8 +1,10 @@
-use config::BloomConfig;
-use wrappers::Filters;
+use config::{BloomConfig, BloomFilterConfig};
+use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter_params};
+use lbf::bloom_lbf;
+use wrappers::{BloomFilter, Filters};
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
-use std::sync::RwLockReadGuard;
+use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use std::str::StrExt;
 
 // ------------------------------------------------------------------
@@ -54,11 +56,13 @@ pub fn create(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args 
     let filter_name     : String = String::from_str(args.remove(0));
     let mut capacity    : u64 = config.initial_capacity;
     let mut probability : f64 = config.default_probability;
+    let mut in_memory   : bool = config.in_memory;
     
     if filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_EXISTS);
     }
     
+    // Check for changes to the capacity and probability
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
             let mut pieces : Vec<&str> = arg.split_str("=").collect();
@@ -74,14 +78,25 @@ pub fn create(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args 
                 None => { }
             };
         }
+        else if arg.starts_with("in_memory=") {
+            let mut pieces : Vec<&str> = arg.split_str("=").collect();
+            let value_opt : Option<u8> = FromStr::from_str(pieces.pop().unwrap());
+            if value_opt.is_some() {
+                in_memory = (value_opt.unwrap() > 0);
+            }
+        }
         else {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
     }
+    // create the lbf and add it to the filters
+    let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
+    let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, in_memory, params.bytes, 0);
+    let lbf : bloom_lbf = bloom_lbf::new(params, filter_name, Vec::new());
 
-    
+    filters.insert_filter(filter_name, BloomFilter::new(config, filter_config, lbf));
 
-    return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, probability);
+    return String::from_str(MESSAGE_DONE);
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)

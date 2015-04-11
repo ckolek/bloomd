@@ -123,9 +123,15 @@ impl BloomConfig {
  * filter specific settings to an INI file.
  */
 pub struct BloomFilterConfig {
-    pub probability           : f64,
     pub capacity              : u64, // Total capacity
-    pub bytes                 : u64, // Total byte size
+    pub probability           : f64,
     pub in_memory             : bool,
+    pub bytes                 : u64, // Total byte size
     pub size                  : u64, // Total size
+}
+
+impl BloomFilterConfig {
+    pub fn new(capacity : u64, probability : f64, in_memory : bool, bytes : u64, size : u64) -> Self {
+        return BloomFilterConfig { capacity: capacity, probability: probability, in_memory: in_memory, bytes: bytes, size: size };
+    }
 }
