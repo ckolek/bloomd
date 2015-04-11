@@ -80,7 +80,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<'a, S : Stream>(filters : &Arc<RwLock<Filters<'a>>>, stream : S) {
+fn handle_client<S : Stream>(filters : &Arc<RwLock<Filters<'static>>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -103,7 +103,7 @@ fn handle_client<'a, S : Stream>(filters : &Arc<RwLock<Filters<'a>>>, stream : S
 }
     
 // Find which command
-fn interpret_request(filters : &Arc<RwLock<Filters>>, input : &str) -> String {
+fn interpret_request(filters : &Arc<RwLock<Filters<'static>>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit

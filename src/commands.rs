@@ -12,7 +12,7 @@ static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
-pub fn bulk<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn bulk(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -24,7 +24,7 @@ pub fn bulk<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> St
 }
 
 // Checks if a key is in a filter
-pub fn check<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn check(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -36,7 +36,7 @@ pub fn check<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> S
 }
 
 // Create a new filter
-pub fn create<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn create(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() == 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -75,7 +75,7 @@ pub fn create<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> 
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)
-pub fn close<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn close(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -86,7 +86,7 @@ pub fn close<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> S
 }
 
 // Clears a filter from the lists (removes memory, left on disk)
-pub fn clear<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn clear(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -97,7 +97,7 @@ pub fn clear<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> S
 }
 
 // Drops a filter (deletes from disk)
-pub fn drop<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn drop(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
         if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -108,7 +108,7 @@ pub fn drop<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> St
 }
 
 // Gets info about filter
-pub fn info<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn info(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -120,7 +120,7 @@ pub fn info<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> St
 }
 
 // Lists all filters, or those matching a prefix
-pub fn list<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn list(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -129,7 +129,7 @@ pub fn list<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> St
 }
 
 // Checks if a list of keys are in a filter
-pub fn multi<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn multi(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -141,7 +141,7 @@ pub fn multi<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> S
 }
 
 // Flushes all filters, or just a specified one
-pub fn flush<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn flush(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() > 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -154,7 +154,7 @@ pub fn flush<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> S
 }
 
 // Sets an item in a filter
-pub fn set<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> String {
+pub fn set(filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -165,7 +165,7 @@ pub fn set<'a>(filters : &Arc<RwLock<Filters<'a>>>, mut args : Vec<&str>) -> Str
     return format!("set {} {}\r\n", filter_name, key_name);
 }
 
-pub fn filter_exists<'a>(filters : &Arc<RwLock<Filters<'a>>>, filter_name : &String) -> bool {
-    let read_filters : RwLockReadGuard<Filters<'a>> = filters.read().unwrap();
+pub fn filter_exists(filters : &Arc<RwLock<Filters<'static>>>, filter_name : &String) -> bool {
+    let read_filters : RwLockReadGuard<Filters<'static>> = filters.read().unwrap();
     return read_filters.filters.contains_key(filter_name);
 }
