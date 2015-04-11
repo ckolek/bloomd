@@ -1,6 +1,7 @@
 use config::{bloom_config, bloom_filter_config};
 use lbf::bloom_lbf;
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
 
 pub struct filter_counters {
     check_hits   : u64,
@@ -25,7 +26,7 @@ pub struct Filters<'a> {
 }
 
 impl<'a> Filters<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         return Filters {
             filters : HashMap::new()
         };

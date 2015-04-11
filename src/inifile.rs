@@ -303,7 +303,7 @@ impl fmt::String for IniFile {
 				if self.comments.contains_key(section) && self.comments[*section].contains_key(key) {
 					lines.push_str(self.comments[*section][*key].as_slice());
 				}
-				lines.push_str(format!("{}={}\n", key.to_string(), self.get(section.as_slice(), key.as_slice())).as_slice());
+				lines.push_str(format!("{}={}\n", key.to_string(), self.get_string(section.as_slice(), key.as_slice())).as_slice());
 			}
 		}
 		write!(f, "{}", lines)

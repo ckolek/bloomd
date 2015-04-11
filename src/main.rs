@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 use config::bloom_config;
-use wrappers::bloom_filter;
+use wrappers::{bloom_filter, Filters};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
@@ -27,24 +27,25 @@ mod wrappers;
 mod inifile;
 
 // ------------------------------------------------------------------
-static ADDRESS                 : &'static str = "127.0.0.1:8673";
-static CONFIG_FILENAME         : &'static str = "bloomd.config";
-static MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
-static COMMAND_BULK_AB         : &'static str = "b";
-static COMMAND_BULK            : &'static str = "bulk";
-static COMMAND_CHECK_AB        : &'static str = "c";
-static COMMAND_CHECK           : &'static str = "check";
-static COMMAND_CREATE          : &'static str = "create";
-static COMMAND_CLOSE           : &'static str = "close";
-static COMMAND_CLEAR           : &'static str = "clear";
-static COMMAND_DROP            : &'static str = "drop";
-static COMMAND_INFO            : &'static str = "info";
-static COMMAND_LIST            : &'static str = "list";
-static COMMAND_MULTI_AB        : &'static str = "m";
-static COMMAND_MULTI           : &'static str = "multi";
-static COMMAND_FLUSH           : &'static str = "flush";
-static COMMAND_SET_AB          : &'static str = "s";
-static COMMAND_SET             : &'static str = "set";
+const BIND_ADDRESS            : &'static str = "127.0.0.1";
+const BIND_TCP_PORT           : &'static str = "8673";
+const CONFIG_FILENAME         : &'static str = "bloomd.config";
+const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
+const COMMAND_BULK_AB         : &'static str = "b";
+const COMMAND_BULK            : &'static str = "bulk";
+const COMMAND_CHECK_AB        : &'static str = "c";
+const COMMAND_CHECK           : &'static str = "check";
+const COMMAND_CREATE          : &'static str = "create";
+const COMMAND_CLOSE           : &'static str = "close";
+const COMMAND_CLEAR           : &'static str = "clear";
+const COMMAND_DROP            : &'static str = "drop";
+const COMMAND_INFO            : &'static str = "info";
+const COMMAND_LIST            : &'static str = "list";
+const COMMAND_MULTI_AB        : &'static str = "m";
+const COMMAND_MULTI           : &'static str = "multi";
+const COMMAND_FLUSH           : &'static str = "flush";
+const COMMAND_SET_AB          : &'static str = "s";
+const COMMAND_SET             : &'static str = "set";
 // ------------------------------------------------------------------
 
 // Go ahead and start up the server
@@ -57,7 +58,7 @@ fn main() {
     //TODO: GET CONFIGS
     let filters_orig : Arc<RwLock<Filters>> 
             = Arc::new(RwLock::new(Filters::new()));
-    let listener = TcpListener::bind("127.0.0.1:8673");
+    let listener = TcpListener::bind(format!("{}:{}", BIND_ADDRESS, BIND_TCP_PORT).as_slice());
     
     // bind the listener to the specified address
     let mut acceptor = listener.listen();
@@ -102,7 +103,7 @@ fn handle_client<'a, S : Stream>(filters : &Arc<RwLock<Filters<'a>>>, stream : S
 }
     
 // Find which command
-fn interpret_request(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, input : &str) -> String {
+fn interpret_request(filters : &Arc<RwLock<Filters>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit
