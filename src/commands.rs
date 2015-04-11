@@ -13,7 +13,7 @@ static MESSAGE_NO_EXIST   : &'static str = "Filter does not exist\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
-pub fn bulk(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn bulk(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -21,7 +21,7 @@ pub fn bulk(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -29,7 +29,7 @@ pub fn bulk(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
 }
 
 // Checks if a key is in a filter
-pub fn check(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn check(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -37,7 +37,7 @@ pub fn check(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -45,7 +45,7 @@ pub fn check(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
 }
 
 // Create a new filter
-pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn create(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() == 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -55,7 +55,7 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
     let mut capacity    : u64 = config.initial_capacity;
     let mut probability : f64 = config.default_probability;
     
-    if filter_exists(filters, &filter_name) {
+    if filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_EXISTS);
     }
     
@@ -79,18 +79,20 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
         }
     }
 
+    
+
     return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, probability);
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)
-pub fn close(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn close(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
     let filter_name  : String = String::from_str(args[0]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -98,14 +100,14 @@ pub fn close(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
 }
 
 // Clears a filter from the lists (removes memory, left on disk)
-pub fn clear(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn clear(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
     let filter_name  : String = String::from_str(args[0]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -113,14 +115,14 @@ pub fn clear(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
 }
 
 // Drops a filter (deletes from disk)
-pub fn drop(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn drop(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
         if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
     let filter_name  : String = String::from_str(args[0]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -128,7 +130,7 @@ pub fn drop(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
 }
 
 // Gets info about filter
-pub fn info(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn info(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -136,7 +138,7 @@ pub fn info(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
     // Get the arguments
     let filter_name : String = String::from_str(args[0]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -144,16 +146,22 @@ pub fn info(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
 }
 
 // Lists all filters, or those matching a prefix
-pub fn list(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn list(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
+
+    let mut result : String = String::new();
+
+    for (name, filter) in filters.iter() {
+        result.push_str(format!("{} {} {} {} {}\r\n", name, filter.filter_config.probability, filter.filter_config.bytes, filter.filter_config.capacity, filter.filter_config.size).as_slice());
+    }
     
-    return String::from_str("list\r\n");
+    return result;
 }
 
 // Checks if a list of keys are in a filter
-pub fn multi(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn multi(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -161,7 +169,7 @@ pub fn multi(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -169,7 +177,7 @@ pub fn multi(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
 }
 
 // Flushes all filters, or just a specified one
-pub fn flush(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn flush(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() > 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -178,7 +186,7 @@ pub fn flush(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
     }
     
     let filter_name  : String = String::from_str(args[0]);
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
@@ -186,7 +194,7 @@ pub fn flush(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mu
 }
 
 // Sets an item in a filter
-pub fn set(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
+pub fn set(config : &BloomConfig, filters : &Arc<Filters<'static>>, mut args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -194,14 +202,9 @@ pub fn set(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut 
     let filter_name  : String = String::from_str(args[0]);
     let key_name  : String = String::from_str(args[1]);
     
-    if !filter_exists(filters, &filter_name) {
+    if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
     return format!("set {} {}\r\n", filter_name, key_name);
-}
-
-pub fn filter_exists(filters : &Arc<RwLock<Filters<'static>>>, filter_name : &String) -> bool {
-    let read_filters : RwLockReadGuard<Filters<'static>> = filters.read().unwrap();
-    return read_filters.filters.contains_key(filter_name);
 }

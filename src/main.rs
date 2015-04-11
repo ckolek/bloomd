@@ -29,8 +29,8 @@ mod inifile;
 // ------------------------------------------------------------------
 const CONFIG_FILENAME         : &'static str = "bloomd.ini";
 const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
-const MESSAGE_START           : &'static str = "START";
-const MESSAGE_END             : &'static str = "END";
+const MESSAGE_START           : &'static str = "START\r\n";
+const MESSAGE_END             : &'static str = "END\r\n";
 const COMMAND_BULK_AB         : &'static str = "b";
 const COMMAND_BULK            : &'static str = "bulk";
 const COMMAND_CHECK_AB        : &'static str = "c";
@@ -58,7 +58,7 @@ fn main() {
     let config : BloomConfig = BloomConfig::from_filename(CONFIG_FILENAME);
     
     //TODO: GET CONFIGS
-    let filters : Arc<RwLock<Filters>> = Arc::new(RwLock::new(Filters::new()));
+    let filters : Arc<Filters> = Arc::new(Filters::new());
     let listener = TcpListener::bind(format!("{}:{}", config.bind_address, config.tcp_port).as_slice()).unwrap();
     
     // bind the listener to the specified address
@@ -82,7 +82,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, stream : S) {
+fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<Filters<'static>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -107,7 +107,7 @@ fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<RwLock<Filters
 }
     
 // Find which command
-fn interpret_request(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, input : &str) -> String {
+fn interpret_request(config : &BloomConfig, filters : &Arc<Filters<'static>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit

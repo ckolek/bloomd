@@ -1,34 +1,53 @@
 use config::{BloomConfig, BloomFilterConfig};
+use bitmap::{bitmap_mode, bloom_bitmap};
+use bloom::{bloom_filter_params, bloom_bloomfilter, size_for_capacity_prob, ideal_k_num};
 use lbf::bloom_lbf;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use std::sync::{Mutex, RwLock};
+use std::collections::hash_map::{HashMap, Iter};
 
 pub struct FilterCounters {
-    check_hits   : u64,
-    check_misses : u64,
-    set_hits     : u64,
-    set_misses   : u64,
-    page_ins     : u64,
-    page_outs    : u64
+    pub check_hits   : u64,
+    pub check_misses : u64,
+    pub set_hits     : u64,
+    pub set_misses   : u64,
+    pub page_ins     : u64,
+    pub page_outs    : u64
+}
+
+impl FilterCounters {
+    pub fn new() -> Self {
+        return FilterCounters { check_hits: 0, check_misses: 0, set_hits: 0, set_misses: 0, page_ins: 0, page_outs: 0 };
+    }
 }
 
 pub struct BloomFilter<'a> {
-    config        : &'a BloomConfig,          // bloomd configuration
-    filter_config : BloomFilterConfig,       // Filter-specific config
-    full_path     : String,                    // Path to our data
-    lbf_lock      : Arc<Mutex<bloom_lbf<'a>>>, // Protects faulting in the filter
-    counters      : FilterCounters             // Counters
+    pub config        : &'a BloomConfig,          // bloomd configuration
+    pub filter_config : BloomFilterConfig,       // Filter-specific config
+    pub lbf           : RwLock<bloom_lbf<'a>>, // Protects faulting in the filter
+    pub counters      : FilterCounters             // Counters
 }
 
 // Wrapper for dealing with RwLock
 pub struct Filters<'a> {
-    pub filters : HashMap<String, BloomFilter<'a>>
+    mutex   : Mutex<u8>,
+    filters : HashMap<String, BloomFilter<'a>>
 }
 
 impl<'a> Filters<'a> {
     pub fn new() -> Self {
         return Filters {
-            filters : HashMap::new()
+            mutex: Mutex::new(0),
+            filters: HashMap::new()
         };
+    }
+
+    pub fn contains_filter_named(&self, filter_name: &String) -> bool {
+        self.mutex.lock().unwrap();
+
+        return self.filters.contains_key(filter_name);
+    }
+
+    pub fn iter(&self) -> Iter<String, BloomFilter<'a>> {
+        return self.filters.iter();
     }
 }
