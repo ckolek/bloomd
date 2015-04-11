@@ -27,19 +27,25 @@ pub struct BloomFilter<'a> {
     pub counters      : FilterCounters             // Counters
 }
 
-impl<'a> BloomFilter<'a> {
-    pub fn new(config : &'a BloomConfig, filter_config : BloomFilterConfig, lbf : bloom_lbf<'a>) -> Self {
-        return BloomFilter { config: config, filter_config: filter_config, lbf: RwLock::new(lbf), counters: FilterCounters::new() };
+impl<'a, 'b> BloomFilter<'a, 'b> {
+    pub fn  new(config : &'a BloomConfig, filter_config : BloomFilterConfig, full_path : String, lbf : bloom_lbf<'b>) -> Self {
+        return BloomFilter {
+            config        : config,
+            filter_config : filter_config,
+            full_path     : full_path,
+            lbf_lock      : RwLock::new(lbf),
+            counters      : FilterCounters::new()
+        };
     }
 }
 
 // Wrapper for dealing with RwLock
 pub struct Filters<'a> {
     mutex   : Mutex<u8>,
-    filters : HashMap<String, BloomFilter<'a>>
+    filters : HashMap<String, BloomFilter<'a, 'b>>
 }
 
-impl<'a> Filters<'a> {
+impl<'a, 'b> Filters<'a, 'b> {
     pub fn new() -> Self {
         return Filters {
             mutex: Mutex::new(0),
