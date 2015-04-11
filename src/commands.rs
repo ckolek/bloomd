@@ -1,4 +1,4 @@
-use wrappers::bloom_filter;
+use wrappers::{bloom_filter, Filters};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
@@ -11,7 +11,7 @@ static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
-pub fn bulk(filters : &Arc<HashMap<String, bloom_filter>>, args : Vec<&str>) -> String {
+pub fn bulk<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -19,23 +19,23 @@ pub fn bulk(filters : &Arc<HashMap<String, bloom_filter>>, args : Vec<&str>) -> 
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
-    return String::from_str("bulk {} {}\r\n", filter_name, args.connect(" "));
+    return format!("bulk {} {}\r\n", filter_name, args.connect(" "));
 }
 
 // Checks if a key is in a filter
-pub fn check(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn check<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
-    let key_name  : String = String::from_str(args.get(1));
+    let filter_name  : String = String::from_str(args[0]);
+    let key_name  : String = String::from_str(args[1]);
     
     return format!("check {} {}\r\n", filter_name, key_name);
 }
 
 // Create a new filter
-pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn create<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() == 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -51,13 +51,13 @@ pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<
     
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
-            capacity = match FromStr::from_str::<u64>(arg.trim_left_matches("capacity=")) {
+            capacity = match FromStr::from_str(arg.trim_left_matches("capacity=")) {
                 Some(value) => { value },
                 None => { 1000000 }
             };
         }
         else if arg.starts_with("prob=") {
-            prob = match FromStr::from_str::<f64>(arg.trim_left_matches("prob=")) {
+            prob = match FromStr::from_str(arg.trim_left_matches("prob=")) {
                 Some(value) => { value },
                 None => { 0.001 }
             };
@@ -71,52 +71,52 @@ pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)
-pub fn close(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn close<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(args[0]);
     
     return format!("close {}\r\n", filter_name);
 }
 
 // Clears a filter from the lists (removes memory, left on disk)
-pub fn clear(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn clear<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(args[0]);
     
     return format!("clear {}\r\n", filter_name);
 }
 
 // Drops a filter (deletes from disk)
-pub fn drop(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn drop<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
         if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(args[0]);
     
     return format!("drop {}\r\n", filter_name);
 }
 
 // Gets info about filter
-pub fn info(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn info<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
     // Get the arguments
-    let filter_name : String = String::from_str(args.get(0));
+    let filter_name : String = String::from_str(args[0]);
     
     return format!("info {}\r\n", filter_name);
 }
 
 // Lists all filters, or those matching a prefix
-pub fn list(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn list<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 0 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -125,7 +125,7 @@ pub fn list(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&s
 }
 
 // Checks if a list of keys are in a filter
-pub fn multi(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn multi<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -133,11 +133,11 @@ pub fn multi(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
     
-    return String::from_str("multi {} {}\r\n", filter_name, args.connect(" "));
+    return format!("multi {} {}\r\n", filter_name, args.connect(" "));
 }
 
 // Flushes all filters, or just a specified one
-pub fn flush(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn flush<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() > 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -145,23 +145,23 @@ pub fn flush(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
         return format!("flush all\r\n");
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(args[0]);
     return format!("flush {}\r\n", filter_name);
 }
 
 // Sets an item in a filter
-pub fn set(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
+pub fn set<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String {
     if args.len() != 2 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
-    let key_name  : String = String::from_str(args.get(1));
+    let filter_name  : String = String::from_str(args[0]);
+    let key_name  : String = String::from_str(args[1]);
     
     return format!("set {} {}\r\n", filter_name, key_name);
 }
 
-pub fn filter_exists(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, filter_name : &String) {
-    let read_filters : RwLockReadGuard<HashMap<String, bloom_filter>> = filters.read().unwrap();
-    return read_filters.contains_key(filter_name);
+pub fn filter_exists<'a>(filters : &Arc<RwLock<Filters<'a>>>, filter_name : &str) -> bool {
+    let read_filters : RwLockReadGuard<Filters<'a>> = filters.read().unwrap();
+    return read_filters.filters.contains_key(&String::from_str(filter_name));
 }

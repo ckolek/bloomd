@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 
 use config::bloom_config;
-use wrappers::bloom_filter;
+use wrappers::{bloom_filter, Filters};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
@@ -55,7 +55,8 @@ fn main() {
     use std::thread::Thread;
     
     //TODO: GET CONFIGS
-    let filters_orig : Arc<RwLock<HashMap<String, bloom_filter>>> = Arc::new(RwLock::new(HashMap::new()));
+    let filters_orig : Arc<RwLock<Filters>> 
+            = Arc::new(RwLock::new(Filters { filters: HashMap::new() }));
     let listener = TcpListener::bind("127.0.0.1:8673");
     
     // bind the listener to the specified address
@@ -78,7 +79,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<S : Stream>(filters : Arc<RwLock<HashMap<String, bloom_filter>>>, stream : S) {
+fn handle_client<'a, S : Stream>(filters : Arc<RwLock<Filters<'a>>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -101,7 +102,7 @@ fn handle_client<S : Stream>(filters : Arc<RwLock<HashMap<String, bloom_filter>>
 }
     
 // Find which command
-fn interpret_request(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, input : &str) -> String {
+fn interpret_request<'a>(filters : &Arc<RwLock<Filters<'a>>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit
