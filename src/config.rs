@@ -9,11 +9,11 @@ struct bloom_config {
     scale_size            : i32,
     probability_reduction : f64,
     flush_interval        : i32,
-    cold_interval         : i32
-    in_memory             : bool
+    cold_interval         : i32,
+    in_memory             : bool,
     worker_threads        : i32,
     use_mmap              : bool
-} bloom_config;
+}
 
 /**
  * This structure is used to persist
@@ -28,4 +28,4 @@ struct bloom_filter_config {
     size                  : u64, // Total size
     capacity              : u64, // Total capacity
     bytes                 : u64, // Total byte size
-} bloom_filter_config;
+}
