@@ -46,13 +46,13 @@ pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<
     
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
-            capacity = match from_str::<u64>(arg.trim_left_matches("capacity=")) {
+            capacity = match FromStr::from_str::<u64>(arg.trim_left_matches("capacity=")) {
                 Some(value) => { value },
                 None => { 1000000 }
             };
         }
         else if arg.starts_with("prob=") {
-            prob = match from_str::<f64>(arg.trim_left_matches("prob=")) {
+            prob = match FromStr::from_str::<f64>(arg.trim_left_matches("prob=")) {
                 Some(value) => { value },
                 None => { 0.001 }
             };
