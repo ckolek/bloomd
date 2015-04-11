@@ -46,7 +46,6 @@ static COMMAND_SET_AB          : &'static str = "s";
 static COMMAND_SET             : &'static str = "set";
 // ------------------------------------------------------------------
 
-<<<<<<< HEAD
 // Go ahead and start up the server
 #[cfg(not(test))]
 fn main() {
@@ -60,21 +59,6 @@ fn main() {
     
     // bind the listener to the specified address
     let mut acceptor = listener.listen();
-=======
-struct BloomServer<'a> {
-    filters : HashMap<String, bloom_filter<'a>>
-}
-
-impl<'a> BloomServer<'a> {
-    fn new(config_filename : &str) -> Self {
-        return BloomServer { config: bloom_config::from_filename(config_filename), filters: HashMap::new() };
-    }
-
-    fn start(&mut self) {
-        use std::io::{TcpListener,TcpStream};
-        use std::io::{Listener,Acceptor};
-        use std::thread::Thread;
->>>>>>> d0b0a74dd905651e9f258769914432054b8ed38d
 
     // Accept incoming connections, with a new connection for each 
     for stream in acceptor.incoming() {

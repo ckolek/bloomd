@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-=======
 
 use inifile::IniFile;
 
 #[derive(Clone)]
->>>>>>> d0b0a74dd905651e9f258769914432054b8ed38d
 pub struct bloom_config {
     tcp_port              : i32,
     udp_port              : i32,
