@@ -47,19 +47,19 @@ pub struct Filters<'a> {
 impl<'a> Filters<'a> {
     pub fn new() -> Self {
         return Filters {
-            mutex: Mutex::new(0),
+            lock: RwLock::new(0),
             filters: HashMap::new()
         };
     }
 
     pub fn contains_filter_named(&self, filter_name: &String) -> bool {
-        self.mutex.lock().unwrap();
-
+        let rlock = self.lock.read().unwrap();
+        
         return self.filters.contains_key(filter_name);
     }
 
     pub fn insert_filter(&mut self, filter_name : String, filter : BloomFilter<'a>) {
-        self.mutex.lock().unwrap();
+        let wlock = self.lock.write().unwrap();
 
         self.filters.insert(filter_name, filter);
     }

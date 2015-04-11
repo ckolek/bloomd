@@ -11,7 +11,8 @@ use std::str::StrExt;
 static MESSAGE_BAD_ARGS : &'static str = "Client Error: Bad arguments\r\n";
 static MESSAGE_DONE     : &'static str = "Done\r\n";
 static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
-static MESSAGE_NO_EXIST   : &'static str = "Filter does not exist\r\n";
+static MESSAGE_NO_EXIST : &'static str = "Filter does not exist\r\n";
+static MESSAGE_NO       : &'static str = "No";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
@@ -27,7 +28,17 @@ pub fn bulk<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    return format!("bulk {} {}\r\n", filter_name, args.connect(" "));
+    // Write lock the filter so we don't interrupt anyone else reading
+    let rlock = filters.lock.read();
+    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
+    let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf_lock.write().unwrap();
+    
+    let results : Vec<u32> =  Vec::new();
+    for arg in args {
+        results.push(lbf.add(key_name).unwrap());
+    }
+    
+    return format!("{}\r\n", results.connect(" "));
 }
 
 // Checks if a key is in a filter
@@ -43,7 +54,21 @@ pub fn check<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    return format!("check {} {}\r\n", filter_name, key_name);
+    // Check the filter with the given name
+    let rlock = filters.lock.read();
+    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
+    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
+    
+    return format!("{}\r\n", get_contains(lbf, key_name));
+}
+
+// Helper for check and multi, gets the output when given an lbf and a key to search for
+pub fn get_contains(lbf : RwLockReadGuard<bloom_lbf>, key_name : String) -> String {
+    let result : u32 = lbf.contains(key_name).unwrap();
+    if result == 0 {
+        return String::from_str(MESSAGE_NO);
+    }
+    return format!("{}", u32);
 }
 
 // Create a new filter
@@ -157,7 +182,29 @@ pub fn info<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    return format!("info {}\r\n", filter_name);
+    // Acquire locks so no one changes the filter while we're reading
+    let rlock = filters.lock.read();
+    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
+    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
+    
+    // Get info about filter
+    let mut result : String = String::new();
+    result.push_str("START\r\n");
+    result.push_str(format!("capacity {}", filter.config.capacity).as_slice());
+    result.push_str(format!("checks {}", filter.counters.check_hits + filter.counters.check_misses).as_slice());
+    result.push_str(format!("check_hits {}", filter.counters.check_hits).as_slice());
+    result.push_str(format!("check_misses {}", filter.counters.check_misses).as_slice());
+    result.push_str(format!("page_ins {}", filter.counters.page_ins).as_slice());
+    result.push_str(format!("page_outs {}", filter.counters.page_outs).as_slice());
+    result.push_str(format!("probability {}", filter.config.probability).as_slice());
+    result.push_str(format!("sets {}", filter.counters.set_hits + filter.counters.set_misses).as_slice());
+    result.push_str(format!("set_hits {}", filter.counters.set_hits).as_slice());
+    result.push_str(format!("set_misses {}", filter.counters.set_misses).as_slice());
+    result.push_str(format!("size {}", filter.config.size).as_slice());
+    result.push_str(format!("storage {}", filter.config.bytes).as_slice());
+    result.push_str("END\r\n");
+    
+    return result;
 }
 
 // Lists all filters, or those matching a prefix
@@ -196,12 +243,22 @@ pub fn multi<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
     
     // Get the arguments
     let filter_name : String = String::from_str(args.remove(0));
-    
     if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    return format!("multi {} {}\r\n", filter_name, args.connect(" "));
+    // Lock the filter so it doesn't change while we're reading
+    let rlock = filters.lock.read();
+    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
+    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
+    
+    // Check each argument passed to us
+    let results : Vec<&str> = Vec::new();
+    for arg in args.iter() {
+        results.push(get_contains(lbf, String::from_str(arg)).as_slice());
+    }
+    
+    return format!("{}\r\n", results.connect(" "));
 }
 
 // Flushes all filters, or just a specified one
@@ -234,5 +291,10 @@ pub fn set<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args :
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    return format!("set {} {}\r\n", filter_name, key_name);
+    // Write lock the filter so we don't interrupt anyone else reading
+    let rlock = filters.lock.read();
+    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
+    let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf_lock.write().unwrap();
+    
+    return format!("{}\r\n", lbf.add(key_name).unwrap());
 }
