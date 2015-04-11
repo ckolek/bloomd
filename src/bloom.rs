@@ -118,6 +118,17 @@ pub fn compute_hashes(k_num : u32, key : &str) -> u64 {
     return hashes;
 }
 
+pub fn create_bloom_filter_params(capacity : u64, probability : f64) -> bloom_filter_params {
+    let mut params : bloom_filter_params = bloom_filter_params::empty();
+    params.capacity = capacity;
+    params.fp_probability = probability;
+
+    size_for_capacity_prob(&mut params).unwrap();
+    ideal_k_num(&mut params).unwrap();
+
+    return params;
+}
+
 pub fn params_for_capacity(params : &mut bloom_filter_params) -> Result<(), ()> {
     if unsafe { externals::bf_params_for_capacity(params as *mut bloom_filter_params) } < 0 {
         return Err(());

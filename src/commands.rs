@@ -1,8 +1,10 @@
 use config::BloomConfig;
+use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter_params};
+use lbf::bloom_lbf;
 use wrappers::Filters;
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
-use std::sync::RwLockReadGuard;
+use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 use std::str::StrExt;
 
 // ------------------------------------------------------------------
@@ -54,11 +56,13 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
     let filter_name     : String = String::from_str(args.remove(0));
     let mut capacity    : u64 = config.initial_capacity;
     let mut probability : f64 = config.default_probability;
-    
+
+    // If it already exists, don't create it again
     if filter_exists(filters, &filter_name) {
         return String::from_str(MESSAGE_EXISTS);
     }
     
+    // Check for changes to the capacity and probability
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
             let mut pieces : Vec<&str> = arg.split_str("=").collect();
@@ -78,8 +82,15 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
             return String::from_str(MESSAGE_BAD_ARGS);
         }
     }
-
-    return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, probability);
+    
+    // create the lbf and add it to the filters
+    let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
+    let lbf : bloom_lbf = bloom_lbf::new(params, &filter_name, Vec::new());
+    
+    let write_filters : RwLockWriteGuard<Filters<'static>> = filters.write().unwrap();
+    
+    write_filters.filters.insert(filter_name, lbf);
+    return String::from_str(MESSAGE_DONE);
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)
