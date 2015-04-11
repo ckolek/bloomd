@@ -92,8 +92,8 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
                                                 filter_params,
                                                 format!("{}.{}", config.data_dir, filter_name),
                                                 lbf);
+                                                
     let write_filters : RwLockWriteGuard<Filters<'static>> = filters.write().unwrap();
-    
     write_filters.filters.insert(filter_name, filter);
     return String::from_str(MESSAGE_DONE);
 }
@@ -161,11 +161,26 @@ pub fn info(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut
 
 // Lists all filters, or those matching a prefix
 pub fn list(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, mut args : Vec<&str>) -> String {
-    if args.len() != 0 {
+    if args.len() >= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
+    let mut prefix : &str = "";
     
-    return String::from_str("list\r\n");
+    if args.len() == 1 {
+        prefix = args[0];
+    }
+    
+    let read_filters : RwLockReadGuard<Filters<'static>> = filters.read().unwrap();
+    let print_lines : Vec<String> = Vec::new();
+    
+    for (filter_name : String, filter : BloomFilter) in read_filters.filters.iter() {
+        if filter_name.as_slice().starts_with(prefix) {
+            print_lines.push(format!("{} {} {} {}", 
+                filter_name, filter.config.default_probability, filter.config.size, filter.config.capacity, filter.counters.set_hits));
+        }
+    }
+    
+    return format!("START\r\n{}\r\nEND\r\n", print_lines.connect("\r\n"));
 }
 
 // Checks if a list of keys are in a filter
