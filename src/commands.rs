@@ -12,7 +12,7 @@ static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
-pub fn bulk(filters : &Arc<HashMap<String, bloom_filter>>, args : Vec<&str>) -> String {
+pub fn bulk(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&str>) -> String {
     if args.len() <= 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
@@ -29,8 +29,8 @@ pub fn check(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
-    let key_name  : String = String::from_str(args.get(1));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
+    let key_name  : String = String::from_str(*args.get(1).unwrap());
     
     return format!("check {} {}\r\n", filter_name, key_name);
 }
@@ -80,7 +80,7 @@ pub fn close(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
     
     return format!("close {}\r\n", filter_name);
 }
@@ -91,7 +91,7 @@ pub fn clear(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
     
     return format!("clear {}\r\n", filter_name);
 }
@@ -102,7 +102,7 @@ pub fn drop(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&s
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
     
     return format!("drop {}\r\n", filter_name);
 }
@@ -114,7 +114,7 @@ pub fn info(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&s
     }
     
     // Get the arguments
-    let filter_name : String = String::from_str(args.get(0));
+    let filter_name : String = String::from_str(*args.get(0).unwrap());
     
     return format!("info {}\r\n", filter_name);
 }
@@ -149,7 +149,7 @@ pub fn flush(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&
         return format!("flush all\r\n");
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
     return format!("flush {}\r\n", filter_name);
 }
 
@@ -159,8 +159,8 @@ pub fn set(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&st
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
-    let filter_name  : String = String::from_str(args.get(0));
-    let key_name  : String = String::from_str(args.get(1));
+    let filter_name  : String = String::from_str(*args.get(0).unwrap());
+    let key_name  : String = String::from_str(*args.get(1).unwrap());
     
     return format!("set {} {}\r\n", filter_name, key_name);
 }

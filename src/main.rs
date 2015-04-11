@@ -114,41 +114,23 @@ fn interpret_request(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, inpu
     let command : &str = words.remove(0);
     
     // Move to function for command, if command exists
-    if command.eq(COMMAND_BULK) || command.eq(COMMAND_BULK_AB) {
-        return commands::bulk(filters, words);
+    return match command {
+        COMMAND_BULK     => { commands::bulk  (filters, words) },
+        COMMAND_BULK_AB  => { commands::bulk  (filters, words) },
+        COMMAND_CHECK    => { commands::check (filters, words) },
+        COMMAND_CHECK_AB => { commands::check (filters, words) },
+        COMMAND_CREATE   => { commands::create(filters, words) },
+        COMMAND_CLOSE    => { commands::close (filters, words) },
+        COMMAND_CLEAR    => { commands::clear (filters, words) },
+        COMMAND_DROP     => { commands::drop  (filters, words) },
+        COMMAND_INFO     => { commands::info  (filters, words) },
+        COMMAND_LIST     => { commands::list  (filters, words) },
+        COMMAND_MULTI    => { commands::multi (filters, words) },
+        COMMAND_MULTI_AB => { commands::multi (filters, words) },
+        COMMAND_FLUSH    => { commands::flush (filters, words) },
+        COMMAND_SET      => { commands::set   (filters, words) },
+        COMMAND_SET_AB   => { commands::set   (filters, words) },
+        _ => { String::from_str(MESSAGE_NOT_IMPLEMENTED) },
     }
-    else if command.eq(COMMAND_CHECK) || command.eq(COMMAND_CHECK_AB) {
-        return commands::check(filters, words);
-    }
-    else if command.eq(COMMAND_CREATE) {
-        return commands::create(filters, words);
-    }
-    else if command.eq(COMMAND_CLOSE) {
-        return commands::close(filters, words);
-    }
-    else if command.eq(COMMAND_CLEAR) {
-        return commands::clear(filters, words);
-    }
-    else if command.eq(COMMAND_DROP) {
-        return commands::drop(filters, words);
-    }
-    else if command.eq(COMMAND_INFO) {
-        return commands::info(filters, words);
-    }
-    else if command.eq(COMMAND_LIST) {
-        return commands::list(filters, words);
-    }
-    else if command.eq(COMMAND_MULTI) || command.eq(COMMAND_MULTI_AB) {
-        return commands::multi(filters, words);
-    }
-    else if command.eq(COMMAND_FLUSH) {
-        return commands::flush(filters, words);
-    }
-    else if command.eq(COMMAND_SET) || command.eq(COMMAND_SET_AB) {
-        return commands::set(filters, words);
-    }
-
-    // Was not any of the supported commands
-    return String::from_str(MESSAGE_NOT_IMPLEMENTED);
 }
 
