@@ -172,6 +172,7 @@ pub fn list<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         prefix = args[0];
     }
     
+    result.push_str("START\r\n");
     for (name, filter) in filters.iter() {
         if name.starts_with(prefix) {
             result.push_str(format!("{} {} {} {} {}\r\n", 
@@ -182,6 +183,7 @@ pub fn list<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
                                     filter.filter_config.size).as_slice());
         }
     }
+    result.push_str("END\r\n");
     
     return result;
 }
