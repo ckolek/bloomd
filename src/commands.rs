@@ -78,14 +78,8 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
             return String::from_str(MESSAGE_BAD_ARGS);
         }
     }
-    
-<<<<<<< HEAD
-    
-    
-    return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, prob);
-=======
+
     return format!("create {} capacity={} prob={}\r\n", filter_name, capacity, probability);
->>>>>>> origin/master
 }
 
 // Closes the filter (Unmaps from memory, but still accessible)

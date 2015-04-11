@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test() {
         let params : bloom_filter_params = filter::test::create_bloom_filter_params();
-        let lbf : bloom_lbf = bloom_lbf::new(params, String::from_str("test"), Vec::new());
+        let lbf : bloom_lbf = bloom_lbf::new(params, &String::from_str("test"), Vec::new());
 
         filter::test::test_filter(Box::new(lbf),
             &[[1, 0, 0], [2, 1, 0], [3, 2, 1]],
