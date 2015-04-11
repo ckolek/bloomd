@@ -121,7 +121,7 @@ pub extern "C" fn lbf_close(lbf : *mut bloom_lbf) -> i32 {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use filter;
     use bloom::{bloom_filter_params, bloom_bloomfilter};
     use lbf::bloom_lbf;
@@ -133,7 +133,7 @@ mod test {
         let mut filters : Vec<bloom_bloomfilter> = Vec::new();
 
         for i in (0..3) {
-            filters.push(filter::test::create_bloom_filter(&params, format!("map{}.bmp", i).as_slice()));
+            filters.push(filter::test::create_bloom_filter(&params, format!("lbf-map{}.bmp", i).as_slice()));
         }
 
         let lbf : bloom_lbf = bloom_lbf::new(filters);

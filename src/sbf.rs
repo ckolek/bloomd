@@ -143,7 +143,7 @@ mod externals {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::ptr;
     use super::{bloom_sbf, bloom_sbf_params};
     use bloom::{bloom_bloomfilter, bloom_filter_params};
@@ -157,7 +157,7 @@ mod test {
         let mut filters : Vec<bloom_bloomfilter> = Vec::new();
 
         for i in (0..3) {
-            filters.push(filter::test::create_bloom_filter(&bf_params, format!("map{}.bmp", i).as_slice()));
+            filters.push(filter::test::create_bloom_filter(&bf_params, format!("sbf-map{}.bmp", i).as_slice()));
         }
 
         let filter : bloom_sbf = bloom_sbf::from_filters(sbf_params, None, ptr::null_mut(), filters);
