@@ -21,8 +21,8 @@ pub struct bloom_config {
 static DEFAULT_CONFIG : bloom_config = bloom_config {
     tcp_port: 8673,
     udp_port: 8674,
-    bind_address: "0.0.0.0",
-    data_dir: "/tmp/bloomd",
+    bind_address: String::from_str("0.0.0.0"),
+    data_dir: String::from_str("/tmp/bloomd"),
     initial_capacity: 100000,
     default_probability: 0.0001,
     scale_size: 4,
@@ -34,21 +34,21 @@ static DEFAULT_CONFIG : bloom_config = bloom_config {
     use_mmap: false
 };
 
-static INI_SECTION_BLOOMD               : &'static str = "bloomd";
-static INI_OPTION_PORT                  : &'static str = "port";
-static INI_OPTION_TCP_PORT              : &'static str = "tcp_port";
-static INI_OPTION_UDP_PORT              : &'static str = "udp_port";
-static INI_OPTION_SCALE_SIZE            : &'static str = "scale_size";
-static INI_OPTION_FLUSH_INTERVAL        : &'static str = "flush_interval";
-static INI_OPTION_COLD_INTERVAL         : &'static str = "cold_interval";
-static INI_OPTION_IN_MEMORY             : &'static str = "in_memory";
-static INI_OPTION_WORKERS               : &'static str = "workers";
-static INI_OPTION_USE_MMAP              : &'static str = "use_mmap";
-static INI_OPTION_INITIAL_CAPACITY      : &'static str = "initial_capacity";
-static INI_OPTION_DEFAULT_PROBABILITY   : &'static str = "default_probability";
-static INI_OPTION_PROBABILITY_REDUCTION : &'static str = "probability_reduction";
-static INI_OPTION_DATA_DIR              : &'static str = "data_dir";
-static INI_OPTION_BIND_ADDRESS          : &'static str = "bind_address";
+const INI_SECTION_BLOOMD               : &'static str = "bloomd";
+const INI_OPTION_PORT                  : &'static str = "port";
+const INI_OPTION_TCP_PORT              : &'static str = "tcp_port";
+const INI_OPTION_UDP_PORT              : &'static str = "udp_port";
+const INI_OPTION_SCALE_SIZE            : &'static str = "scale_size";
+const INI_OPTION_FLUSH_INTERVAL        : &'static str = "flush_interval";
+const INI_OPTION_COLD_INTERVAL         : &'static str = "cold_interval";
+const INI_OPTION_IN_MEMORY             : &'static str = "in_memory";
+const INI_OPTION_WORKERS               : &'static str = "workers";
+const INI_OPTION_USE_MMAP              : &'static str = "use_mmap";
+const INI_OPTION_INITIAL_CAPACITY      : &'static str = "initial_capacity";
+const INI_OPTION_DEFAULT_PROBABILITY   : &'static str = "default_probability";
+const INI_OPTION_PROBABILITY_REDUCTION : &'static str = "probability_reduction";
+const INI_OPTION_DATA_DIR              : &'static str = "data_dir";
+const INI_OPTION_BIND_ADDRESS          : &'static str = "bind_address";
 
 impl bloom_config {
     pub fn from_filename(filename : &str) -> Self {
@@ -57,23 +57,23 @@ impl bloom_config {
         let mut ini : IniFile = IniFile::new();
         ini.read(filename);
 
-        if ini.has_section(INI_SECTION_BLOOMD) {
-            for option in ini.options(INI_SECTION_BLOOMD).iter() {
-                match option {
-                    INI_OPTION_PORT                  => { config.tcp_port              = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_PORT) },
-                    INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT) },
-                    INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT) },
-                    INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE) },
-                    INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL) },
-                    INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL) },
-                    INI_IPTION_WORKERS               => { config.worker_threads        = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_WORKERS) },
-                    INI_OPTION_INITIAL_CAPACITY      => { config.initial_capacity      = ini.get_int( INI_SECTION_BLOOMD, INI_OPTION_INITIAL_CAPACITY) },
-                    INI_OPTION_USE_MMAP              => { config.use_mmap              = ini.get_bool(INI_SECTION_BLOOMD, INI_OPTION_USE_MMAP) },
-                    INI_OPTION_IN_MEMORY             => { config.in_memory             = ini.get_bool(INI_SECTION_BLOOMD, INI_OPTION_IN_MEMORY) },
-                    INI_OPTION_DEFAULT_PROBABILITY   => { config.default_probabiity    = ini.get_f64( INI_SECTION_BLOOMD, INI_OPTION_DEFAULT_PROBABILITY) },
-                    INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get_f64( INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION) },
-                    INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get(     INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR) },
-                    INI_OPTION_BIND_ADDRESS          => { config.bind_address          = ini.get(     INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) }
+        if ini.has_section(INI_SECTION_BLOOMD.as_slice()) {
+            for option in ini.options(String::from_str(INI_SECTION_BLOOMD)).iter() {
+                match option.as_slice() {
+                    INI_OPTION_PORT                  => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_PORT) },
+                    INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT) },
+                    INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT) },
+                    INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE) },
+                    INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL) },
+                    INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL) },
+                    INI_IPTION_WORKERS               => { config.worker_threads        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_WORKERS) },
+                    INI_OPTION_INITIAL_CAPACITY      => { config.initial_capacity      = ini.get::<u64>(INI_SECTION_BLOOMD, INI_OPTION_INITIAL_CAPACITY) },
+                    INI_OPTION_USE_MMAP              => { config.use_mmap              = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_USE_MMAP) },
+                    INI_OPTION_IN_MEMORY             => { config.in_memory             = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_IN_MEMORY) },
+                    INI_OPTION_DEFAULT_PROBABILITY   => { config.default_probability   = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_DEFAULT_PROBABILITY) },
+                    INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION) },
+                    INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR) },
+                    INI_OPTION_BIND_ADDRESS          => { config.bind_address          = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) }
                 }
             }
         }

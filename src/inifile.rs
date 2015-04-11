@@ -18,12 +18,10 @@
 //!
 //! @todo eddyb: you may want that to be Option<&'a str> so you can return None when the option isn't present. Option<T> can be either Some(T) or None. Option<~T> and Option<&T> are nullable pointers semantically (and optimized as such)
 
-extern crate debug;
 extern crate test;
-#[phase(plugin, link)] extern crate log;
 
-use std::collections::hashmap::HashMap;
-use std::from_str::FromStr;
+use std::collections::HashMap;
+use std::str::FromStr;
 use std::io::BufferedReader;
 use std::io::fs::File;
 use std::fmt;
@@ -51,7 +49,7 @@ pub struct IniFile {
 impl IniFile {
 	/**
 	 * Add a section named section to the instance.
-	 * If a section by the given name already exists, fail!()
+	 * If a section by the given name already exists, panic!()
 	 */
 	pub fn add_section(&mut self, section: &str) {
 		if !self.has_section(section) {
@@ -60,7 +58,7 @@ impl IniFile {
 			self.sections.push(section.to_string());
 			self.options.push(Vec::new());
 		} else {
-			fail!("The section {:?} already exists!", section);
+			panic!("The section {:?} already exists!", section);
 		}
 	}
 	/**
@@ -73,7 +71,7 @@ impl IniFile {
 	 * Get an option value for the named section.
 	 */
 	//pub fn get<'a>(&self, section: &'a str, option: &'a str) -> String {
-	pub fn get(&self, section: &str, option: &str) -> String {
+	pub fn get_string(&self, section: &str, option: &str) -> String {
 		if !self.has_option(section, option) {
 			()
 		}
@@ -85,35 +83,23 @@ impl IniFile {
 	 * @todo These string values are checked in a case-insensitive manner.
 	 */
 	pub fn get_bool(&self, section: &str, option: &str) -> bool {
-		let value = self.get(section, option);
+		let value = self.get_string(section, option);
 		match value.as_slice() {
 			"1" | "yes" | "true" | "T" | "on" => true,
 			"0" | "no" | "false" | "F" | "off" => false,
-			_ => fail!("{} is not a boolean.", value)
-		}
-	}
-	/**
-	 * A convenience method which coerces the option in the specified section to a float f64.
-	 */
-	pub fn get_f64(&self, section: &str, option: &str) -> f64 {
-		let val = self.get(section, option);
-		let value = val.as_slice();
-		let x: Option<f64> = FromStr::from_str(value);
-		match x {
-			None => fail!("{} is not a float.", value),
-			_ => x.unwrap()
+			_ => panic!("{} is not a boolean.", value)
 		}
 	}
 	/**
 	 * A convenience method which coerces the option in the specified section to an integer.
 	 */
-	pub fn get_int(&self, section: &str, option: &str) -> int {
-		let val = self.get(section, option);
+	pub fn get<S : FromStr>(&self, section: &str, option: &str) -> S {
+		let val = self.get_string(section, option);
 		let value = val.as_slice();
 		// https://github.com/mozilla/rust/wiki/Doc-FAQ-Cheatsheet#string-to-int
-		let x: Option<int> = FromStr::from_str(value);
+		let x: Option<S> = FromStr::from_str(value);
 		match x {
-			None => fail!("{} is not an integer.", value),
+			None => panic!("{} cannot be parsed.", value),
 			_ => x.unwrap()
 		}
 	}
@@ -151,8 +137,8 @@ impl IniFile {
 		self.path = Path::new(filepath);
 		let file = File::open(&self.path);
 		match file {
-			Err(e) => fail!("open of {:?} failed: {}", self.path, e),
-			_ => debug!("open of {:?} succeeded", self.path)
+			Err(e) => panic!("open of {:?} failed: {}", self.path, e),
+			_ => { }
 		}
 		let mut reader = BufferedReader::new(file);
 		let mut lines: Vec<String> = Vec::new();
@@ -189,7 +175,7 @@ impl IniFile {
 				section = line_slice.slice_chars(1, line_len - 1).to_string();
 				if !self.opts.contains_key(&section) {
 					self.add_section(section.as_slice());
-					self.comments.get_mut(&section).insert("__section_comment__".to_string(), comment_lines.into_string());
+					self.comments.get_mut(&section).unwrap().insert("__section_comment__".to_string(), comment_lines.clone());
 					comment_lines = String::new();
 				}
 				continue;
@@ -197,11 +183,11 @@ impl IniFile {
 			let index = line_slice.find_str("=").unwrap();
 			let optkey = line_slice.slice_chars(0, index).to_string();
 			let optval = line_slice.slice_chars(index + 1, line_len).to_string();
-			self.comments.get_mut(&section).insert(optkey.clone(), comment_lines.into_string());
+			self.comments.get_mut(&section).unwrap().insert(optkey.clone(), comment_lines.clone());
 			comment_lines = String::new();
-			self.opts.get_mut(&section).insert(optkey.clone(), optval);
+			self.opts.get_mut(&section).unwrap().insert(optkey.clone(), optval);
 			let section_index = self.sections.as_slice().position_elem(&section).unwrap();
-			self.options.get_mut(section_index).push(optkey.clone());
+			self.options.get_mut(section_index).unwrap().push(optkey.clone());
 		}
 	}
 	/**
@@ -210,7 +196,7 @@ impl IniFile {
 	 */
 	 pub fn remove_option(&mut self, section: String, option: String) -> bool {
 		if !self.has_section(section.as_slice()) {
-			fail!("Section [{:?}] does not exist!");
+			panic!("Section [{:?}] does not exist!");
 		}
 	/*
 		if !self.has_option(section.to_string(), option.to_string()) {
@@ -218,9 +204,9 @@ impl IniFile {
 		}
 	*/
 		let section_index = self.sections.as_slice().position_elem(&section).unwrap();
-		self.options.get_mut(section_index).remove(section_index);
-		self.comments.get_mut(&section).pop(&option);
-		self.opts.get_mut(&section).pop(&option);
+		self.options.get_mut(section_index).unwrap().remove(section_index);
+		self.comments.get_mut(&section).unwrap().remove(&option);
+		self.opts.get_mut(&section).unwrap().remove(&option);
 	 	true
 	 }
 	/**
@@ -233,8 +219,8 @@ impl IniFile {
 			false
 		}
 	*/
-		self.opts.pop(&section);
-		self.comments.pop(&section);
+		self.opts.remove(&section);
+		self.comments.remove(&section);
 		match self.sections.as_slice().position_elem(&section) {
 			Some(index) => {
 				self.sections.remove(index);
@@ -262,20 +248,20 @@ impl IniFile {
 		self.sections.clone()
 	}
 	/**
-	 * If the given section exists, set the given option to the specified value; otherwise fail!().
+	 * If the given section exists, set the given option to the specified value; otherwise panic!().
 	 */
 	pub fn set(&mut self, section: String, option: String, value: String) {
 		let asection = section.as_slice();
 //		let aoption = option.as_slice();
 		if !self.has_section(asection) {
-			fail!("Section [{:?}] does not exist!");
+			panic!("Section [{:?}] does not exist!");
 		}
 		if !self.has_option(asection, option.as_slice()) {
-			self.opts.get_mut(&section).insert(option.clone(), value);
+			self.opts.get_mut(&section).unwrap().insert(option.clone(), value);
 			let section_index = self.sections.as_slice().position_elem(&section).unwrap();
-			self.options.get_mut(section_index).push(option.clone());
+			self.options.get_mut(section_index).unwrap().push(option.clone());
 		} else {
-			self.opts.get_mut(&section).swap(option, value);
+			self.opts.get_mut(&section).unwrap().insert(option, value);
 		}
 	}
 	/**
@@ -291,8 +277,8 @@ impl IniFile {
 	pub fn write(&self, filepath: &str) {
 		// http://doc.rust-lang.org/std/io/
 		let mut file = File::create(&Path::new(filepath));
-		match file.write(self.to_string().as_bytes()) {
-			Ok(()) => debug!("INI file {:?} written", self.path),
+		match file.write(format!("{}", self).as_bytes()) {
+			Ok(()) => { },
 			Err(e) => println!("failed to write to {:?}: {}", self.path, e),
 		}
 	}
@@ -302,7 +288,7 @@ impl IniFile {
  * Operator overloading
  * @see http://maniagnosis.crsr.net/2013/04/operator-overloading-in-rust.html
  */
-impl fmt::Show for IniFile {
+impl fmt::String for IniFile {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let mut lines = String::new();
 		let sections = self.sections().clone();
@@ -516,8 +502,8 @@ mod tests {
 		let path = Path::new(filepath);
 		let file = File::open(&path);
 		match file {
-			Err(e) => fail!("open of {:?} failed: {}", path, e),
-			_ => debug!("open of {:?} succeeded", path)
+			Err(e) => panic!("open of {:?} failed: {}", path, e),
+			_ => { }
 		}
 		let mut reader = BufferedReader::new(file);
 		let mut lines: Vec<String> = Vec::new();
@@ -555,7 +541,7 @@ mod tests {
 		// Clean
 		assert!(path.exists(), format!("{} should exist after reading the new inifile!", writepath));
 		let result = fs::unlink(&path);
-		assert!(!result.is_err(), format!("Unlinking {} should not fail!", writepath));
+		assert!(!result.is_err(), format!("Unlinking {} should not panic!", writepath));
 	}
 	#[test]
 	fn save() {
@@ -574,8 +560,8 @@ mod tests {
 
 		let file = File::open(&path);
 		match file {
-			Err(e) => fail!("open of {:?} failed: {}", path, e),
-			_ => debug!("open of {:?} succeeded", path)
+			Err(e) => panic!("open of {:?} failed: {}", path, e),
+			_ => { }
 		}
 		let mut reader = BufferedReader::new(file);
 		let mut lines: Vec<String> = Vec::new();
@@ -590,8 +576,8 @@ mod tests {
 		let expected = "[section1]\nkey1=value1\n".to_string();
 		assert_eq!(expected, found);
 		match fs::unlink(&path) {
-			Err(e) => fail!("open of {:?} failed: {}", path, e),
-			_ => debug!("open of {:?} succeeded", path)
+			Err(e) => panic!("open of {:?} failed: {}", path, e),
+			_ => { }
 		}
 	}
 }

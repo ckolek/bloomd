@@ -1,8 +1,7 @@
 use wrappers::bloom_filter;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::f64::FromStr;
-use std::u64::FromStr;
+use std::str::FromStr;
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 
 // ------------------------------------------------------------------
@@ -32,13 +31,13 @@ pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<
     
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
-            capacity = match std::u64::from_str(arg.trim_left_matches("capacity=")) {
+            capacity = match FromStr::from_str(arg.trim_left_matches("capacity=")) {
                 Some(value) => { value },
                 None => { 1000000 }
             };
         }
         else if arg.starts_with("prob=") {
-            prob = match std::f64::from_str(arg.trim_left_matches("prob=")) {
+            prob = match FromStr::from_str(arg.trim_left_matches("prob=")) {
                 Some(value) => { value },
                 None => { 0.001 }
             };

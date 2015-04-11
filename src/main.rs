@@ -24,6 +24,7 @@ mod lbf;
 mod commands;
 mod config;
 mod wrappers;
+mod inifile;
 
 // ------------------------------------------------------------------
 static ADDRESS                 : &'static str = "127.0.0.1:8673";
