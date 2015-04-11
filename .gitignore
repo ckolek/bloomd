@@ -13,3 +13,4 @@ test_bloomd_runner
 *.swp
 target/
 bloomd
+src/main.rs
