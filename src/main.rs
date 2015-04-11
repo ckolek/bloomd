@@ -27,10 +27,10 @@ mod wrappers;
 mod inifile;
 
 // ------------------------------------------------------------------
-const BIND_ADDRESS            : &'static str = "127.0.0.1";
-const BIND_TCP_PORT           : &'static str = "8673";
 const CONFIG_FILENAME         : &'static str = "bloomd.config";
 const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
+const MESSAGE_START           : &'static str = "START";
+const MESSAGE_END             : &'static str = "END";
 const COMMAND_BULK_AB         : &'static str = "b";
 const COMMAND_BULK            : &'static str = "bulk";
 const COMMAND_CHECK_AB        : &'static str = "c";
@@ -59,7 +59,7 @@ fn main() {
     
     //TODO: GET CONFIGS
     let filters : Arc<RwLock<Filters>> = Arc::new(RwLock::new(Filters::new()));
-    let listener = TcpListener::bind(format!("{}:{}", BIND_ADDRESS, BIND_TCP_PORT).as_slice()).unwrap();
+    let listener = TcpListener::bind(format!("{}:{}", config.bind_address, config.tcp_port).as_slice()).unwrap();
     
     // bind the listener to the specified address
     let mut acceptor = listener.listen().unwrap();
@@ -97,7 +97,9 @@ fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<RwLock<Filters
         let trim_line : &str = line.as_slice().trim_matches(chars_to_trim);
 
         let response : String = interpret_request(config, filters, trim_line);
+        buf_stream.write_str(MESSAGE_START).unwrap();
         buf_stream.write_str(response.as_slice()).unwrap();
+        buf_stream.write_str(MESSAGE_END).unwrap();
 
         // Need to flush, or else we won't write to the client
         buf_stream.flush().unwrap();

@@ -16,7 +16,7 @@ extern crate test;
 
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::io::BufferedReader;
+use std::io::{BufferedReader, IoError, IoResult};
 use std::io::fs::File;
 use std::fmt;
 
@@ -113,6 +113,15 @@ impl IniFile {
 	pub fn new() -> IniFile {
 		IniFile { comments: HashMap::new(), options: Vec::new(), path: Path::new(""), opts: HashMap::new(), sections: Vec::new() }
 	}
+
+    pub fn from_filename(filename : &str) -> IoResult<Self> {
+        let mut iniFile : IniFile = IniFile::new();
+        
+        return match iniFile.read(filename) {
+            Ok(_)  => Ok(iniFile),
+            Err(e) => Err(e)
+        };
+    }
 	/**
 	 * Return a list of options available in the specified section.
 	 */
@@ -127,11 +136,11 @@ impl IniFile {
 	/**
 	 * Read and parse configuration data from filepath.
 	 */
-	pub fn read(&mut self, filepath: &str) {
+	pub fn read(&mut self, filepath: &str) -> Result<(), IoError> {
 		self.path = Path::new(filepath);
 		let file = File::open(&self.path);
 		match file {
-			Err(e) => panic!("open of {:?} failed: {}", self.path, e),
+			Err(e) => {return Err(e)},
 			_ => { }
 		}
 		let mut reader = BufferedReader::new(file);
@@ -143,6 +152,8 @@ impl IniFile {
 			}
 		}
 		self.read_string(lines);
+
+        return Ok(());
 	}
 	/**
 	 * Parse configuration data from a vector of strings (file lines).
