@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::str::FromStr;
 use std::sync::{RwLockReadGuard, RwLockWriteGuard};
+use std::str::StrExt;
 
 // ------------------------------------------------------------------
 static MESSAGE_BAD_ARGS : &'static str = "Client Error: Bad arguments\r\n";
@@ -44,20 +45,23 @@ pub fn create<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> Stri
     let filter_name  : String = String::from_str(args.remove(0));
     let mut capacity : u64 = 1000000;
     let mut prob     : f64 = 0.001;
-    
+    /*
     if filter_exists(filters, &filter_name) {
         return String::from_str(MESSAGE_EXISTS);
     }
-    
+    */
     for arg in args.iter() {
+        
         if arg.starts_with("capacity=") {
-            capacity = match FromStr::from_str(arg.trim_left_matches("capacity=")) {
+            let pieces : Vec<&str> = arg.split_str("=").collect();
+            capacity = match FromStr::from_str(pieces.pop().unwrap()) {
                 Some(value) => { value },
                 None => { 1000000 }
             };
         }
         else if arg.starts_with("prob=") {
-            prob = match FromStr::from_str(arg.trim_left_matches("prob=")) {
+            let pieces : Vec<&str> = arg.split_str("=").collect();
+            prob = match FromStr::from_str(pieces.pop().unwrap()) {
                 Some(value) => { value },
                 None => { 0.001 }
             };
@@ -161,7 +165,9 @@ pub fn set<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String 
     return format!("set {} {}\r\n", filter_name, key_name);
 }
 
+/*
 pub fn filter_exists<'a>(filters : &Arc<RwLock<Filters<'a>>>, filter_name : &str) -> bool {
     let read_filters : RwLockReadGuard<Filters<'a>> = filters.read().unwrap();
     return read_filters.filters.contains_key(&String::from_str(filter_name));
 }
+*/
