@@ -10,7 +10,7 @@
 #![feature(unsafe_destructor)]
 #![allow(dead_code)]
 
-use config::bloom_config;
+use config::BloomConfig;
 use wrappers::Filters;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -54,9 +54,11 @@ fn main() {
     use std::io::{TcpListener,TcpStream};
     use std::io::{Listener,Acceptor};
     use std::thread::Thread;
+
+    let config : BloomConfig = BloomConfig::from_filename(CONFIG_FILENAME);
     
     //TODO: GET CONFIGS
-    let filters_orig : Arc<RwLock<Filters>> = Arc::new(RwLock::new(Filters::new()));
+    let filters : Arc<RwLock<Filters>> = Arc::new(RwLock::new(Filters::new()));
     let listener = TcpListener::bind(format!("{}:{}", BIND_ADDRESS, BIND_TCP_PORT).as_slice()).unwrap();
     
     // bind the listener to the specified address
@@ -64,13 +66,14 @@ fn main() {
 
     // Accept incoming connections, with a new connection for each 
     for stream in acceptor.incoming() {
-        let filters_ref = filters_orig.clone();
+        let new_config = config.clone();
+        let new_filters = filters.clone();
         
         match stream {
             Ok(stream) => {
                 Thread::spawn(move|| {
                     // connection made, now handle client
-                    handle_client(&filters_ref, stream);
+                    handle_client(&new_config, &new_filters, stream);
                 });
             },
             Err(_) => { /* Could not connect */ }
@@ -79,7 +82,7 @@ fn main() {
 }
     
 #[cfg(not(test))]
-fn handle_client<S : Stream>(filters : &Arc<RwLock<Filters<'static>>>, stream : S) {
+fn handle_client<S : Stream>(config: &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, stream : S) {
     let mut buf_stream : BufferedStream<S> = BufferedStream::new(stream);
     
     loop {
@@ -93,7 +96,7 @@ fn handle_client<S : Stream>(filters : &Arc<RwLock<Filters<'static>>>, stream : 
         let chars_to_trim: &[char] = &[' ', '\n', '\r'];
         let trim_line : &str = line.as_slice().trim_matches(chars_to_trim);
 
-        let response : String = interpret_request(filters, trim_line);
+        let response : String = interpret_request(config, filters, trim_line);
         buf_stream.write_str(response.as_slice()).unwrap();
 
         // Need to flush, or else we won't write to the client
@@ -102,7 +105,7 @@ fn handle_client<S : Stream>(filters : &Arc<RwLock<Filters<'static>>>, stream : 
 }
     
 // Find which command
-fn interpret_request(filters : &Arc<RwLock<Filters<'static>>>, input : &str) -> String {
+fn interpret_request(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, input : &str) -> String {
     let mut words : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                             .filter(|&s| s.len() > 0).collect();
     // If the line is empty, then exit
@@ -115,21 +118,21 @@ fn interpret_request(filters : &Arc<RwLock<Filters<'static>>>, input : &str) -> 
     
     // Move to function for command, if command exists
     return match command {
-        COMMAND_BULK     => { commands::bulk  (filters, words) },
-        COMMAND_BULK_AB  => { commands::bulk  (filters, words) },
-        COMMAND_CHECK    => { commands::check (filters, words) },
-        COMMAND_CHECK_AB => { commands::check (filters, words) },
-        COMMAND_CREATE   => { commands::create(filters, words) },
-        COMMAND_CLOSE    => { commands::close (filters, words) },
-        COMMAND_CLEAR    => { commands::clear (filters, words) },
-        COMMAND_DROP     => { commands::drop  (filters, words) },
-        COMMAND_INFO     => { commands::info  (filters, words) },
-        COMMAND_LIST     => { commands::list  (filters, words) },
-        COMMAND_MULTI    => { commands::multi (filters, words) },
-        COMMAND_MULTI_AB => { commands::multi (filters, words) },
-        COMMAND_FLUSH    => { commands::flush (filters, words) },
-        COMMAND_SET      => { commands::set   (filters, words) },
-        COMMAND_SET_AB   => { commands::set   (filters, words) },
+        COMMAND_BULK     => { commands::bulk  (config, filters, words) },
+        COMMAND_BULK_AB  => { commands::bulk  (config, filters, words) },
+        COMMAND_CHECK    => { commands::check (config, filters, words) },
+        COMMAND_CHECK_AB => { commands::check (config, filters, words) },
+        COMMAND_CREATE   => { commands::create(config, filters, words) },
+        COMMAND_CLOSE    => { commands::close (config, filters, words) },
+        COMMAND_CLEAR    => { commands::clear (config, filters, words) },
+        COMMAND_DROP     => { commands::drop  (config, filters, words) },
+        COMMAND_INFO     => { commands::info  (config, filters, words) },
+        COMMAND_LIST     => { commands::list  (config, filters, words) },
+        COMMAND_MULTI    => { commands::multi (config, filters, words) },
+        COMMAND_MULTI_AB => { commands::multi (config, filters, words) },
+        COMMAND_FLUSH    => { commands::flush (config, filters, words) },
+        COMMAND_SET      => { commands::set   (config, filters, words) },
+        COMMAND_SET_AB   => { commands::set   (config, filters, words) },
         _ => { String::from_str(MESSAGE_NOT_IMPLEMENTED) },
     }
 }

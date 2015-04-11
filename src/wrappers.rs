@@ -1,4 +1,4 @@
-use config::{bloom_config, bloom_filter_config};
+use config::{BloomConfig, BloomFilterConfig};
 use lbf::bloom_lbf;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
@@ -13,8 +13,8 @@ pub struct FilterCounters {
 }
 
 pub struct BloomFilter<'a> {
-    config        : &'a bloom_config,          // bloomd configuration
-    filter_config : bloom_filter_config,       // Filter-specific config
+    config        : &'a BloomConfig,          // bloomd configuration
+    filter_config : BloomFilterConfig,       // Filter-specific config
     full_path     : String,                    // Path to our data
     lbf_lock      : Arc<Mutex<bloom_lbf<'a>>>, // Protects faulting in the filter
     counters      : FilterCounters             // Counters
