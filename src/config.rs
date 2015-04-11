@@ -1,20 +1,20 @@
 use inifile::IniFile;
 
 #[derive(Clone)]
-pub struct bloom_config {
-    tcp_port              : i32,
-    udp_port              : i32,
-    bind_address          : String,
-    data_dir              : String,
-    initial_capacity      : u64,
-    default_probability   : f64,
-    scale_size            : i32,
-    probability_reduction : f64,
-    flush_interval        : i32,
-    cold_interval         : i32,
-    in_memory             : bool,
-    worker_threads        : i32,
-    use_mmap              : bool
+pub struct BloomConfig {
+    pub tcp_port              : i32,
+    pub udp_port              : i32,
+    pub bind_address          : String,
+    pub data_dir              : String,
+    pub initial_capacity      : u64,
+    pub default_probability   : f64,
+    pub scale_size            : i32,
+    pub probability_reduction : f64,
+    pub flush_interval        : i32,
+    pub cold_interval         : i32,
+    pub in_memory             : bool,
+    pub worker_threads        : i32,
+    pub use_mmap              : bool
 }
 
 const INI_SECTION_BLOOMD               : &'static str = "bloomd";
@@ -33,7 +33,7 @@ const INI_OPTION_PROBABILITY_REDUCTION : &'static str = "probability_reduction";
 const INI_OPTION_DATA_DIR              : &'static str = "data_dir";
 const INI_OPTION_BIND_ADDRESS          : &'static str = "bind_address";
 
-impl bloom_config {
+impl BloomConfig {
     pub fn new (tcp_port              : i32,
                 udp_port              : i32,
                 bind_address          : &str,
@@ -47,7 +47,7 @@ impl bloom_config {
                 in_memory             : bool,
                 worker_threads        : i32,
                 use_mmap              : bool) -> Self {
-        return bloom_config {
+        return BloomConfig {
             tcp_port: tcp_port,
             udp_port: udp_port,
             bind_address: String::from_str(bind_address),
@@ -65,7 +65,7 @@ impl bloom_config {
     }
 
     pub fn default() -> Self {
-        return bloom_config::new(
+        return BloomConfig::new(
             8673,          // tcp_port
             8674,          // udp_port
             "0.0.0.0",     // bind_address
@@ -84,7 +84,7 @@ impl bloom_config {
     }
 
     pub fn from_filename(filename : &str) -> Self {
-        let mut config : bloom_config = bloom_config::default();
+        let mut config : BloomConfig = BloomConfig::default();
 
         let mut ini : IniFile = IniFile::new();
         ini.read(filename);
@@ -119,13 +119,13 @@ impl bloom_config {
  * This structure is used to persist
  * filter specific settings to an INI file.
  */
-pub struct bloom_filter_config {
-    initial_capacity      : u64,
-    default_probability   : f64,
-    scale_size            : i32,
-    probability_reduction : f64,
-    in_memory             : bool,
-    size                  : u64, // Total size
-    capacity              : u64, // Total capacity
-    bytes                 : u64, // Total byte size
+pub struct BloomFilterConfig {
+    pub initial_capacity      : u64,
+    pub default_probability   : f64,
+    pub scale_size            : i32,
+    pub probability_reduction : f64,
+    pub in_memory             : bool,
+    pub size                  : u64, // Total size
+    pub capacity              : u64, // Total capacity
+    pub bytes                 : u64, // Total byte size
 }
