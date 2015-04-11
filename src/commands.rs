@@ -87,7 +87,7 @@ pub fn create(config : &BloomConfig, filters : &Arc<RwLock<Filters<'static>>>, m
     let params : bloom_filter_params = create_bloom_filter_params(capacity.clone(), probability.clone());
     let filter_params : BloomFilterConfig = BloomFilterConfig::new(capacity, probability);
     
-    let lbf : bloom_lbf = bloom_lbf::new(params, &filter_name, Vec::new());
+    let lbf : bloom_lbf<'static> = bloom_lbf::new(params, &filter_name, Vec::new());
     let filter : BloomFilter = BloomFilter::new(config, 
                                                 filter_params,
                                                 format!("{}.{}", config.data_dir, filter_name),

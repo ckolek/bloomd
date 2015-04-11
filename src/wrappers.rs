@@ -25,32 +25,32 @@ impl FilterCounters {
     }
 }
 
-pub struct BloomFilter<'a> {
+pub struct BloomFilter<'a, 'b> {
     config        : &'a BloomConfig,          // bloomd configuration
     filter_config : BloomFilterConfig,       // Filter-specific config
     full_path     : String,                    // Path to our data
-    lbf_lock      : Arc<Mutex<bloom_lbf<'a>>>, // Protects faulting in the filter
+    lbf_lock      : Mutex<bloom_lbf<'b>>, // Protects faulting in the filter
     counters      : FilterCounters             // Counters
 }
 
-impl<'a> BloomFilter<'a> {
-    pub fn  new(config : &'a BloomConfig, filter_config : BloomFilterConfig, full_path : String, lbf : bloom_lbf<'a>) -> Self {
+impl<'a, 'b> BloomFilter<'a, 'b> {
+    pub fn  new(config : &'a BloomConfig, filter_config : BloomFilterConfig, full_path : String, lbf : bloom_lbf<'b>) -> Self {
         return BloomFilter {
             config        : config,
             filter_config : filter_config,
             full_path     : full_path,
-            lbf_lock      : Arc::new(Mutex::new(lbf)),
+            lbf_lock      : Mutex::new(lbf),
             counters      : FilterCounters::new()
         };
     }
 }
 
 // Wrapper for dealing with RwLock
-pub struct Filters<'a> {
-    pub filters : HashMap<String, BloomFilter<'a>>
+pub struct Filters<'a, 'b> {
+    pub filters : HashMap<String, BloomFilter<'a, 'b>>
 }
 
-impl<'a> Filters<'a> {
+impl<'a, 'b> Filters<'a, 'b> {
     pub fn new() -> Self {
         return Filters {
             filters : HashMap::new()
