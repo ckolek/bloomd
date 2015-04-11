@@ -45,11 +45,11 @@ pub fn create<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> Stri
     let filter_name  : String = String::from_str(args.remove(0));
     let mut capacity : u64 = 1000000;
     let mut prob     : f64 = 0.001;
-    /*
+    
     if filter_exists(filters, &filter_name) {
         return String::from_str(MESSAGE_EXISTS);
     }
-    */
+    
     for arg in args.iter() {
         
         if arg.starts_with("capacity=") {
@@ -165,9 +165,7 @@ pub fn set<'a>(filters : &Arc<RwLock<Filters<'a>>>, args : Vec<&str>) -> String 
     return format!("set {} {}\r\n", filter_name, key_name);
 }
 
-/*
-pub fn filter_exists<'a>(filters : &Arc<RwLock<Filters<'a>>>, filter_name : &str) -> bool {
+pub fn filter_exists<'a>(filters : &Arc<RwLock<Filters<'a>>>, filter_name : &String) -> bool {
     let read_filters : RwLockReadGuard<Filters<'a>> = filters.read().unwrap();
-    return read_filters.filters.contains_key(&String::from_str(filter_name));
+    return read_filters.filters.contains_key(filter_name);
 }
-*/
