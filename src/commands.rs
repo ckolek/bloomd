@@ -7,6 +7,7 @@ use std::sync::{RwLockReadGuard, RwLockWriteGuard};
 // ------------------------------------------------------------------
 static MESSAGE_BAD_ARGS : &'static str = "Client Error: Bad arguments\r\n";
 static MESSAGE_DONE     : &'static str = "Done\r\n";
+static MESSAGE_EXISTS   : &'static str = "Exists\r\n";
 // ------------------------------------------------------------------
 
 // Sets many items in a filter at once
@@ -43,6 +44,10 @@ pub fn create(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<
     let filter_name  : String = String::from_str(args.remove(0));
     let mut capacity : u64 = 1000000;
     let mut prob     : f64 = 0.001;
+    
+    if filter_exists(filters, &filter_name) {
+        return String::from_str(MESSAGE_EXISTS);
+    }
     
     for arg in args.iter() {
         if arg.starts_with("capacity=") {
@@ -154,4 +159,9 @@ pub fn set(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, args : Vec<&st
     let key_name  : String = String::from_str(args.get(1));
     
     return format!("set {} {}\r\n", filter_name, key_name);
+}
+
+pub fn filter_exists(filters : &Arc<RwLock<HashMap<String, bloom_filter>>>, filter_name : &String) {
+    let read_filters : RwLockReadGuard<HashMap<String, bloom_filter>> = filters.read().unwrap();
+    return read_filters.contains_key(filter_name);
 }
