@@ -21,9 +21,9 @@ impl FilterCounters {
 }
 
 pub struct BloomFilter<'a> {
-    pub config        : &'a BloomConfig,          // bloomd configuration
-    pub filter_config : BloomFilterConfig,       // Filter-specific config
-    pub lbf           : RwLock<bloom_lbf<'a>>, // Protects faulting in the filter
+    pub config        : &'a BloomConfig,           // bloomd configuration
+    pub filter_config : BloomFilterConfig,         // Filter-specific config
+    pub lbf           : RwLock<bloom_lbf<'a>>,     // Protects faulting in the filter
     pub counters      : FilterCounters             // Counters
 }
 
@@ -40,7 +40,7 @@ impl<'a> BloomFilter<'a> {
 
 // Wrapper for dealing with RwLock
 pub struct Filters<'a> {
-    mutex   : Mutex<u8>,
+    lock    : RwLock<u8>,
     filters : HashMap<String, BloomFilter<'a>>
 }
 
@@ -62,6 +62,24 @@ impl<'a> Filters<'a> {
         let wlock = self.lock.write().unwrap();
 
         self.filters.insert(filter_name, filter);
+    }
+
+    pub fn use_filter<T, F : Fn(&BloomFilter) -> T>(&self, filter_name : &String, user : F) -> Option<T> {
+        let rlock = self.lock.read().unwrap();
+
+        return match self.filters.get(filter_name) {
+            Some(filter) => Some(user(filter)),
+            None => None
+        };
+    }
+
+    pub fn use_filter_mut<T, F : Fn(&mut BloomFilter) -> T>(&mut self, filter_name : &String, user : F) -> Option<T> {
+        let wlock = self.lock.write().unwrap();
+
+        return match self.filters.get_mut(filter_name) {
+            Some(filter) => Some(user(filter)),
+            None => None
+        };
     }
 
     pub fn iter(&self) -> Iter<String, BloomFilter<'a>> {

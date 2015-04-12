@@ -5,7 +5,7 @@ use self::libc::{c_char, c_int, c_ulong, c_void, malloc, size_t};
 use std::{mem, ffi, ptr};
 use bitmap::bloom_bitmap;
 use bloom::bloom_bloomfilter;
-use filter::BloomFilter;
+use filter::IBloomFilter;
 
 #[repr(C, packed)]
 pub struct bloom_sbf_params {
@@ -73,7 +73,8 @@ impl<'a> bloom_sbf<'a> {
         return unsafe { externals::sbf_total_byte_size(self as *const bloom_sbf) };
     }
 }
-impl<'a> BloomFilter<bool> for bloom_sbf<'a> {   
+
+impl<'a> IBloomFilter<bool> for bloom_sbf<'a> {   
     fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 

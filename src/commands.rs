@@ -1,4 +1,5 @@
 use config::{BloomConfig, BloomFilterConfig};
+use filter::IBloomFilter;
 use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter_params};
 use lbf::bloom_lbf;
 use wrappers::{BloomFilter, Filters};
@@ -27,17 +28,18 @@ pub fn bulk<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
     if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
-    
-    // Write lock the filter so we don't interrupt anyone else reading
-    let rlock = filters.lock.read();
-    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
-    let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf_lock.write().unwrap();
-    
-    let results : Vec<u32> =  Vec::new();
-    for arg in args {
-        results.push(lbf.add(key_name).unwrap());
-    }
-    
+
+    let mut results : Vec<u32> =  Vec::new();
+
+    filters.use_filter(&filter_name, | filter | {
+        // Write lock the filter so we don't interrupt anyone else reading
+        let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf.write().unwrap();
+
+        for key_name in args.iter() {
+            results.push((*lbf).add(String::from_str(*key_name)).unwrap());
+        }
+    });
+
     return format!("{}\r\n", results.connect(" "));
 }
 
@@ -53,22 +55,19 @@ pub fn check<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
     if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
-    
-    // Check the filter with the given name
-    let rlock = filters.lock.read();
-    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
-    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
-    
-    return format!("{}\r\n", get_contains(lbf, key_name));
+
+    return format!("{}\r\n", filters.use_filter(&filter_name, | filter | {
+        get_contains(filter.lbf.read().unwrap(), &key_name);
+    }));
 }
 
 // Helper for check and multi, gets the output when given an lbf and a key to search for
-pub fn get_contains(lbf : RwLockReadGuard<bloom_lbf>, key_name : String) -> String {
+pub fn get_contains(lbf : RwLockReadGuard<bloom_lbf>, key_name : &String) -> String {
     let result : u32 = lbf.contains(key_name).unwrap();
     if result == 0 {
         return String::from_str(MESSAGE_NO);
     }
-    return format!("{}", u32);
+    return format!("{}", result);
 }
 
 // Create a new filter

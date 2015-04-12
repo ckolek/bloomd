@@ -1,5 +1,5 @@
 
-pub trait BloomFilter<T> {
+pub trait IBloomFilter<T> {
     fn add(&mut self, key : String) -> Result<T, ()>;
     fn contains(&self, key : &String) -> Result<T, ()>;
     fn size(&self) -> u64;
@@ -7,7 +7,7 @@ pub trait BloomFilter<T> {
 }
 
 pub mod test {
-    use super::BloomFilter;
+    use super::IBloomFilter;
     use bloom::{bloom_filter_params, bloom_bloomfilter, size_for_capacity_prob, ideal_k_num};
     use bitmap::{bitmap_mode, bloom_bitmap};
 
@@ -25,7 +25,7 @@ pub mod test {
         return params;
     }
 
-    pub fn test_filter<T : Eq>(mut filter : Box<BloomFilter<T>>, add_values : &[[T; 3]], contains_values : &[[T; 3]]) {
+    pub fn test_filter<T : Eq>(mut filter : Box<IBloomFilter<T>>, add_values : &[[T; 3]], contains_values : &[[T; 3]]) {
         let key1 : String = String::from_str("abc");
         let key2 : String = String::from_str("def");
         let key3 : String = String::from_str("ghi");

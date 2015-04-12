@@ -5,7 +5,7 @@ extern crate libc;
 use self::libc::c_char;
 use std::ffi;
 use bitmap::{bitmap_mode, bloom_bitmap};
-use filter::BloomFilter;
+use filter::IBloomFilter;
 
 #[repr(C, packed)]
 pub struct bloom_filter_header {
@@ -46,7 +46,7 @@ impl<'a> bloom_bloomfilter<'a> {
     }
 }
 
-impl<'a> BloomFilter<bool> for bloom_bloomfilter<'a> {
+impl<'a> IBloomFilter<bool> for bloom_bloomfilter<'a> {
     fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
         let result : i32 = unsafe { externals::bf_add(self as *mut bloom_bloomfilter, key.as_ptr()) };

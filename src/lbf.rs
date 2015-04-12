@@ -1,6 +1,6 @@
 extern crate libc;
 
-use filter::BloomFilter;
+use filter::IBloomFilter;
 use bloom::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
 
 #[repr(C)]
@@ -24,7 +24,7 @@ impl<'a> bloom_lbf<'a> {
     }
 }
 
-impl<'a> BloomFilter<u32> for bloom_lbf<'a> {
+impl<'a> IBloomFilter<u32> for bloom_lbf<'a> {
     fn add(&mut self, key : String) -> Result<u32, ()> {
         let mut index : u32 = 0;
 
