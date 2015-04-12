@@ -38,7 +38,7 @@ pub fn bulk<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         for key_name in args.iter() {
             results.push((*lbf).add(String::from_str(*key_name)).unwrap());
         }
-    });
+    }).unwrap();
 
     return format!("{}\r\n", results.connect(" "));
 }
@@ -55,10 +55,12 @@ pub fn check<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
     if !filters.contains_filter_named(&filter_name) {
         return String::from_str(MESSAGE_NO_EXIST);
     }
-
-    return format!("{}\r\n", filters.use_filter(&filter_name, | filter | {
+    
+    let result = filters.use_filter(&filter_name, | filter | {
         get_contains(filter.lbf.read().unwrap(), &key_name);
-    }));
+    }).unwrap();
+
+    return format!("{}\r\n", result);
 }
 
 // Helper for check and multi, gets the output when given an lbf and a key to search for
@@ -155,7 +157,7 @@ pub fn clear<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
 
 // Drops a filter (deletes from disk)
 pub fn drop<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args : Vec<&str>) -> String {
-        if args.len() != 1 {
+    if args.len() != 1 {
         return String::from_str(MESSAGE_BAD_ARGS);
     }
     
@@ -188,20 +190,23 @@ pub fn info<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
     
     // Get info about filter
     let mut result : String = String::new();
-    result.push_str("START\r\n");
-    result.push_str(format!("capacity {}", filter.config.capacity).as_slice());
-    result.push_str(format!("checks {}", filter.counters.check_hits + filter.counters.check_misses).as_slice());
-    result.push_str(format!("check_hits {}", filter.counters.check_hits).as_slice());
-    result.push_str(format!("check_misses {}", filter.counters.check_misses).as_slice());
-    result.push_str(format!("page_ins {}", filter.counters.page_ins).as_slice());
-    result.push_str(format!("page_outs {}", filter.counters.page_outs).as_slice());
-    result.push_str(format!("probability {}", filter.config.probability).as_slice());
-    result.push_str(format!("sets {}", filter.counters.set_hits + filter.counters.set_misses).as_slice());
-    result.push_str(format!("set_hits {}", filter.counters.set_hits).as_slice());
-    result.push_str(format!("set_misses {}", filter.counters.set_misses).as_slice());
-    result.push_str(format!("size {}", filter.config.size).as_slice());
-    result.push_str(format!("storage {}", filter.config.bytes).as_slice());
-    result.push_str("END\r\n");
+    filters.use_filter(&filter_name, | filter | {
+        // Write lock the filter so we don't interrupt anyone else reading
+        let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf.write().unwrap();
+
+        result.push_str("START\r\n");
+        result.push_str(format!("capacity {}", filter.config.capacity).as_slice());
+        result.push_str(format!("checks {}", filter.counters.check_hits + filter.counters.check_misses).as_slice());
+        result.push_str(format!("check_hits {}", filter.counters.check_hits).as_slice());
+        result.push_str(format!("check_misses {}", filter.counters.check_misses).as_slice());
+        result.push_str(format!("page_ins {}", filter.counters.page_ins).as_slice());
+        result.push_str(format!("page_outs {}", filter.counters.page_outs).as_slice());
+        result.push_str(format!("probability {}", filter.config.probability).as_slice());
+        result.push_str(format!("sets {}", filter.counters.sets).as_slice());
+        result.push_str(format!("size {}", filter.config.size).as_slice());
+        result.push_str(format!("storage {}", filter.config.bytes).as_slice());
+        result.push_str("END\r\n");
+    }).unwrap();
     
     return result;
 }
@@ -290,10 +295,12 @@ pub fn set<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args :
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    // Write lock the filter so we don't interrupt anyone else reading
-    let rlock = filters.lock.read();
-    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
-    let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf_lock.write().unwrap();
+    // Lock the filter so we don't interrupt anyone else reading
+    let result = filters.use_filter(&filter_name, | filter | {
+        // Write lock the filter so we don't interrupt anyone else reading
+        let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf.write().unwrap();
+        return (*lbf).add(key_name).unwrap();
+    }).unwrap();
     
-    return format!("{}\r\n", lbf.add(key_name).unwrap());
+    return format!("{}\r\n", result);
 }

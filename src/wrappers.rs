@@ -8,15 +8,14 @@ use std::collections::hash_map::{HashMap, Iter};
 pub struct FilterCounters {
     pub check_hits   : u64,
     pub check_misses : u64,
-    pub set_hits     : u64,
-    pub set_misses   : u64,
+    pub sets         : u64,
     pub page_ins     : u64,
     pub page_outs    : u64
 }
 
 impl FilterCounters {
     pub fn new() -> Self {
-        return FilterCounters { check_hits: 0, check_misses: 0, set_hits: 0, set_misses: 0, page_ins: 0, page_outs: 0 };
+        return FilterCounters { check_hits: 0, check_misses: 0, sets: 0, page_ins: 0, page_outs: 0 };
     }
 }
 
