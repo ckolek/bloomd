@@ -29,14 +29,14 @@ pub fn bulk<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         return String::from_str(MESSAGE_NO_EXIST);
     }
 
-    let mut results : Vec<u32> =  Vec::new();
+    let mut results : Vec<&str> =  Vec::new();
 
     filters.use_filter(&filter_name, | filter | {
         // Write lock the filter so we don't interrupt anyone else reading
         let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf.write().unwrap();
 
         for key_name in args.iter() {
-            results.push((*lbf).add(String::from_str(*key_name)).unwrap());
+            results.push(format!("{}", (*lbf).add(String::from_str(*key_name)).unwrap()).as_slice());
         }
     }).unwrap();
 
@@ -56,11 +56,13 @@ pub fn check<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    let result = filters.use_filter(&filter_name, | filter | {
-        get_contains(filter.lbf.read().unwrap(), &key_name);
+    let mut result : String = String::new();
+    
+    filters.use_filter(&filter_name, | filter | {
+        result = get_contains(filter.lbf.read().unwrap(), &key_name);
     }).unwrap();
 
-    return format!("{}\r\n", result);
+    return result.push_str("\r\n");
 }
 
 // Helper for check and multi, gets the output when given an lbf and a key to search for
@@ -115,6 +117,7 @@ pub fn create<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut arg
             return String::from_str(MESSAGE_BAD_ARGS);
         }
     }
+    
     // create the lbf and add it to the filters
     let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
     let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, in_memory, params.bytes, 0);
@@ -183,11 +186,6 @@ pub fn info<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         return String::from_str(MESSAGE_NO_EXIST);
     }
     
-    // Acquire locks so no one changes the filter while we're reading
-    let rlock = filters.lock.read();
-    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
-    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
-    
     // Get info about filter
     let mut result : String = String::new();
     filters.use_filter(&filter_name, | filter | {
@@ -195,16 +193,16 @@ pub fn info<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args 
         let lbf : RwLockWriteGuard<bloom_lbf> = filter.lbf.write().unwrap();
 
         result.push_str("START\r\n");
-        result.push_str(format!("capacity {}", filter.config.capacity).as_slice());
+        result.push_str(format!("capacity {}", filter.filter_config.capacity).as_slice());
         result.push_str(format!("checks {}", filter.counters.check_hits + filter.counters.check_misses).as_slice());
         result.push_str(format!("check_hits {}", filter.counters.check_hits).as_slice());
         result.push_str(format!("check_misses {}", filter.counters.check_misses).as_slice());
         result.push_str(format!("page_ins {}", filter.counters.page_ins).as_slice());
         result.push_str(format!("page_outs {}", filter.counters.page_outs).as_slice());
-        result.push_str(format!("probability {}", filter.config.probability).as_slice());
+        result.push_str(format!("probability {}", filter.filter_config.probability).as_slice());
         result.push_str(format!("sets {}", filter.counters.sets).as_slice());
-        result.push_str(format!("size {}", filter.config.size).as_slice());
-        result.push_str(format!("storage {}", filter.config.bytes).as_slice());
+        result.push_str(format!("size {}", filter.filter_config.size).as_slice());
+        result.push_str(format!("storage {}", filter.filter_config.bytes).as_slice());
         result.push_str("END\r\n");
     }).unwrap();
     
@@ -252,15 +250,15 @@ pub fn multi<'a>(config : &'a BloomConfig, filters : &Arc<Filters<'a>>, mut args
     }
     
     // Lock the filter so it doesn't change while we're reading
-    let rlock = filters.lock.read();
-    let filter : BloomFilter = filters.filters.get(filter_name).unwrap();
-    let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf_lock.read().unwrap();
-    
-    // Check each argument passed to us
     let results : Vec<&str> = Vec::new();
-    for arg in args.iter() {
-        results.push(get_contains(lbf, String::from_str(arg)).as_slice());
-    }
+    filters.use_filter(&filter_name, | filter | {
+        // Check each argument passed to us
+        let lbf : RwLockReadGuard<bloom_lbf> = filter.lbf.read().unwrap();
+        
+        for arg in args.iter() {
+            results.push(get_contains(lbf, &String::from_str(*arg)).as_slice());
+        }
+    }).unwrap();
     
     return format!("{}\r\n", results.connect(" "));
 }
