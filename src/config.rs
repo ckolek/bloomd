@@ -4,7 +4,7 @@ use inifile::IniFile;
 pub struct BloomConfig {
     pub tcp_port              : i32,
     pub udp_port              : i32,
-    pub bind_address          : String,
+    pub bind_host             : String,
     pub data_dir              : String,
     pub initial_capacity      : u64,
     pub default_probability   : f64,
@@ -36,7 +36,7 @@ const INI_OPTION_BIND_ADDRESS          : &'static str = "bind_address";
 impl BloomConfig {
     pub fn new (tcp_port              : i32,
                 udp_port              : i32,
-                bind_address          : &str,
+                bind_host             : &str,
                 data_dir              : &str,
                 initial_capacity      : u64,
                 default_probability   : f64,
@@ -50,7 +50,7 @@ impl BloomConfig {
         return BloomConfig {
             tcp_port: tcp_port,
             udp_port: udp_port,
-            bind_address: String::from_str(bind_address),
+            bind_host: String::from_str(bind_host),
             data_dir: String::from_str(data_dir),
             initial_capacity: initial_capacity,
             default_probability: default_probability,
@@ -68,7 +68,7 @@ impl BloomConfig {
         return BloomConfig::new(
             8673,          // tcp_port
             8674,          // udp_port
-            "0.0.0.0",     // bind_address
+            "0.0.0.0",     // bind_host
             "/tmp/bloomd", // data_dir
             100000,        // initial_capacity
             0.0001,        // default_probability
@@ -107,7 +107,7 @@ impl BloomConfig {
                         INI_OPTION_DEFAULT_PROBABILITY   => { config.default_probability   = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_DEFAULT_PROBABILITY) },
                         INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION) },
                         INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR) },
-                        INI_OPTION_BIND_ADDRESS          => { config.bind_address          = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) },
+                        INI_OPTION_BIND_ADDRESS          => { config.bind_host             = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) },
                         _ => { panic!("Unknown option: {}", option) }
                     }
                 }
@@ -116,7 +116,13 @@ impl BloomConfig {
 
         return config;
     }
+
+    pub fn get_bind_address(&self) -> String {
+        return format!("{}:{}", self.bind_host, self.tcp_port);
+    }
 }
+
+unsafe impl Send for BloomConfig { }
 
 /**
  * This structure is used to persist

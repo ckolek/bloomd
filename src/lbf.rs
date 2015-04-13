@@ -1,35 +1,38 @@
 extern crate libc;
 
 use filter::IBloomFilter;
-use bloom::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
+use bloom::{bloom_bloomfilter, bloom_filter_params};
 
 #[repr(C)]
-pub struct bloom_lbf<'a> {
-    filter_params : bloom_filter_params,
-    filter_name : String,
-    num_filters : u32,
-    filters : Vec<bloom_bloomfilter<'a>>
+pub struct bloom_lbf {
+    pub params      : bloom_filter_params,
+    pub name        : String,
+    pub num_filters : u32,
+    filters         : Vec<bloom_bloomfilter>
 }
 
-impl<'a> bloom_lbf<'a> {    
-    pub fn new(filter_params : bloom_filter_params,
-               filter_name : String,
-               filters : Vec<bloom_bloomfilter<'a>>) -> Self {
+impl bloom_lbf {    
+    pub fn new(params  : bloom_filter_params,
+               name    : String,
+               filters : Vec<bloom_bloomfilter>) -> Self {
         return bloom_lbf {
-            filter_params: filter_params,
-            filter_name: filter_name,
+            params: params,
+            name: name,
             num_filters: filters.len() as u32,
             filters: Vec::new()
         };
     }
+
+    pub fn add_filter(&mut self, filter : bloom_bloomfilter) {
+        self.filters.push(filter);
+        self.num_filters += 1;
+    }
 }
 
-impl<'a> IBloomFilter<u32> for bloom_lbf<'a> {
+impl IBloomFilter<u32> for bloom_lbf {
     fn add(&mut self, key : String) -> Result<u32, ()> {
         let mut index : u32 = 0;
 
-        // add to the first filter that doesn't have the key, then return how many
-        // layers we went down
         for ref mut filter in self.filters.iter_mut() {
             index += 1;
 
@@ -45,18 +48,8 @@ impl<'a> IBloomFilter<u32> for bloom_lbf<'a> {
                 Err(_) => return Err(())
             }
         }
-        
-        // If the key was in all the filters, make a new one
-        let mut filter : bloom_bloomfilter = create_bloom_filter(&self.filter_params, 
-            format!("{}-map{}.bmp", self.filter_name.as_slice(), self.num_filters).as_slice());
-        return match filter.add(key) {
-            Ok(_) => {
-                self.filters.push(filter);
-                self.num_filters += 1;
-                return Ok(self.num_filters);
-            },
-            Err(_) => Err(())
-        };
+
+        return Ok(0);
     }
 
     fn contains(&self, key : &String) -> Result<u32, ()> {
@@ -75,7 +68,11 @@ impl<'a> IBloomFilter<u32> for bloom_lbf<'a> {
     }
 
     fn size(&self) -> u64 {
-        return self.filters[0].size();
+        if !self.filters.is_empty() {
+            return self.filters[0].size();
+        } else {
+            return 0;
+        }
     }
 
     fn flush(&mut self) -> Result<(), ()> {
@@ -91,8 +88,7 @@ impl<'a> IBloomFilter<u32> for bloom_lbf<'a> {
     }
 }
 
-#[unsafe_destructor]
-impl<'a> Drop for bloom_lbf<'a> {
+impl Drop for bloom_lbf {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
             drop(filter);

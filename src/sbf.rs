@@ -19,27 +19,27 @@ impl bloom_sbf_params {
     pub fn new(initial_capacity : u64, fp_probability : f64, scale_size : u32, probability_reduction : f64) -> Self {
         return bloom_sbf_params { initial_capacity: initial_capacity, fp_probability: fp_probability, scale_size: scale_size, probability_reduction: probability_reduction };
     }
-}
+
 
 #[repr(C)]
-pub struct bloom_sbf<'a> {
+pub struct bloom_sbf {
     params         : bloom_sbf_params,
     callback       : bloom_sbf_callback,
     callback_input : *mut c_void,
     num_filters    : u32,
-    filters        : Vec<bloom_bloomfilter<'a>>,
+    filters        : Vec<bloom_bloomfilter>,
     dirty_filters  : Vec<u8>,
     capacities     : Vec<u64>
 }
 
 pub type bloom_sbf_callback = Option<extern "C" fn (c_void, c_ulong, bloom_bitmap) -> c_int>;
     
-impl<'a> bloom_sbf<'a> {
+impl bloom_sbf {
     pub fn new(params        : bloom_sbf_params,
                cb            : bloom_sbf_callback,
                cb_in         : *mut c_void,
                num_filters   : u32,
-               filters       : Vec<bloom_bloomfilter<'a>>,
+               filters       : Vec<bloom_bloomfilter>,
                dirty_filters : Vec<u8>,
                capacities    : Vec<u64>) -> Self {
         return bloom_sbf {
@@ -56,7 +56,7 @@ impl<'a> bloom_sbf<'a> {
     pub fn from_filters(params  : bloom_sbf_params,
                         cb          : bloom_sbf_callback,
                         cb_in       : *mut c_void,
-                        filters     : Vec<bloom_bloomfilter<'a>>) -> Self {
+                        filters     : Vec<bloom_bloomfilter>) -> Self {
         let mut sbf : bloom_sbf = bloom_sbf::new(params, cb, cb_in, filters.len() as u32, filters, Vec::new(), Vec::new());
         unsafe { 
             externals::sbf_from_filters(&mut sbf.params as *mut bloom_sbf_params, cb, cb_in, sbf.num_filters, &mut sbf.filters[0] as *mut bloom_bloomfilter, &mut sbf as *mut bloom_sbf)
@@ -74,7 +74,7 @@ impl<'a> bloom_sbf<'a> {
     }
 }
 
-impl<'a> IBloomFilter<bool> for bloom_sbf<'a> {   
+impl IBloomFilter<bool> for bloom_sbf {   
     fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
@@ -110,8 +110,7 @@ impl<'a> IBloomFilter<bool> for bloom_sbf<'a> {
     }
 }
 
-#[unsafe_destructor]
-impl<'a> Drop for bloom_sbf<'a> {
+impl Drop for bloom_sbf {
     fn drop(&mut self) {
         unsafe { externals::sbf_close(self as *mut bloom_sbf) };
     }

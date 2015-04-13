@@ -8,21 +8,14 @@ pub trait IBloomFilter<T> {
 
 pub mod test {
     use super::IBloomFilter;
-    use bloom::{bloom_filter_params, bloom_bloomfilter, size_for_capacity_prob, ideal_k_num};
-    use bitmap::{bitmap_mode, bloom_bitmap};
+    use bloom;
+    use bloom::bloom_filter_params;
 
     static FILTER_CAPACITY : u64 = 1000000;
     static FILTER_FP_PROBABILITY : f64 = 0.001;
     
     pub fn create_bloom_filter_params() -> bloom_filter_params {
-        let mut params : bloom_filter_params = bloom_filter_params::empty();
-        params.capacity = FILTER_CAPACITY;
-        params.fp_probability = FILTER_FP_PROBABILITY;
-
-        size_for_capacity_prob(&mut params).unwrap();
-        ideal_k_num(&mut params).unwrap();
-
-        return params;
+        return bloom::create_bloom_filter_params(FILTER_CAPACITY, FILTER_FP_PROBABILITY);
     }
 
     pub fn test_filter<T : Eq>(mut filter : Box<IBloomFilter<T>>, add_values : &[[T; 3]], contains_values : &[[T; 3]]) {

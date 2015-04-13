@@ -112,10 +112,10 @@ impl IniFile {
 	}
 
     pub fn from_filename(filename : &str) -> IoResult<Self> {
-        let mut iniFile : IniFile = IniFile::new();
+        let mut ini_file : IniFile = IniFile::new();
         
-        return match iniFile.read(filename) {
-            Ok(_)  => Ok(iniFile),
+        return match ini_file.read(filename) {
+            Ok(_)  => Ok(ini_file),
             Err(e) => Err(e)
         };
     }

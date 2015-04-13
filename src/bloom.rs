@@ -22,14 +22,14 @@ impl bloom_filter_header {
 }
 
 #[repr(C)]
-pub struct bloom_bloomfilter<'a> {
+pub struct bloom_bloomfilter {
     header      : Box<bloom_filter_header>,
     map         : Box<bloom_bitmap>,
     offset      : u64,
     bitmap_size : u64
 }
 
-impl<'a> bloom_bloomfilter<'a> {
+impl bloom_bloomfilter {
     pub fn new(map : bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
         let mut filter : bloom_bloomfilter = bloom_bloomfilter {
             header: Box::new(bloom_filter_header::new(0, k_num, 0)),
@@ -46,7 +46,7 @@ impl<'a> bloom_bloomfilter<'a> {
     }
 }
 
-impl<'a> IBloomFilter<bool> for bloom_bloomfilter<'a> {
+impl IBloomFilter<bool> for bloom_bloomfilter {
     fn add(&mut self, key : String) -> Result<bool, ()> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
         let result : i32 = unsafe { externals::bf_add(self as *mut bloom_bloomfilter, key.as_ptr()) };
@@ -83,8 +83,7 @@ impl<'a> IBloomFilter<bool> for bloom_bloomfilter<'a> {
     }
 }
 
-#[unsafe_destructor]
-impl<'a> Drop for bloom_bloomfilter<'a> {
+impl Drop for bloom_bloomfilter {
     fn drop(&mut self) {
         unsafe { externals::bf_close(self as *mut bloom_bloomfilter) };
     }
@@ -127,6 +126,12 @@ pub fn create_bloom_filter_params(capacity : u64, probability : f64) -> bloom_fi
     ideal_k_num(&mut params).unwrap();
 
     return params;
+}
+
+pub fn create_bloom_filter(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter {
+    let  map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
+
+    return bloom_bloomfilter::new(map, params.k_num, true);
 }
 
 pub fn params_for_capacity(params : &mut bloom_filter_params) -> Result<(), ()> {
@@ -204,11 +209,6 @@ mod externals {
     }
 }
 
-pub fn create_bloom_filter<'a>(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter<'a> {
-    let  map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
-
-    return bloom_bloomfilter::new(map, params.k_num, true);
-}
 
 #[cfg(test)]
 mod tests {
