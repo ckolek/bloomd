@@ -146,7 +146,13 @@ mod tests {
     #[test]
     fn test() {
         let params : bloom_filter_params = filter::test::create_bloom_filter_params();
-        let lbf : bloom_lbf = bloom_lbf::new(params, &String::from_str("test"), Vec::new());
+        let mut lbf : bloom_lbf = bloom_lbf::new(params, String::from_str("test"), Vec::new());
+        
+        for i in (0..3) {
+            let bloom_filter = create_bloom_filter(&lbf.params, format!("/tmp/lbf-{}.bmp", i).as_slice());
+
+            lbf.add_filter(bloom_filter);
+        }
 
         filter::test::test_filter(Box::new(lbf),
             &[[1, 0, 0], [2, 1, 0], [3, 2, 1]],

@@ -192,7 +192,6 @@ impl BloomServer {
 
             return result;
         }).unwrap();
-
     }
 
     // process a 'check' command
@@ -335,7 +334,9 @@ impl BloomServer {
         }
 
         return self.use_filter(&filter_name, |filter| {
-            return format!("capacity {}\r\nchecks {}\r\ncheck_hits {}\r\ncheck_misses {}\r\npage_ins {}\r\npage_outs {}\r\nprobability {}\r\nsets {}\r\nset_hits {}\r\nset_misses {}\r\nsize {}\r\nstorage {}\r\n",
+            let mut result : String = String::new();
+            result.push_str(MESSAGE_START);
+            result.push_str(format!("capacity {}\r\nchecks {}\r\ncheck_hits {}\r\ncheck_misses {}\r\npage_ins {}\r\npage_outs {}\r\nprobability {}\r\nsets {}\r\nset_hits {}\r\nset_misses {}\r\nsize {}\r\nstorage {}\r\n",
                            filter.config.capacity,
                            filter.counters.checks(),
                            filter.counters.check_hits,
@@ -347,7 +348,10 @@ impl BloomServer {
                            filter.counters.set_hits,
                            filter.counters.set_misses,
                            filter.config.size,
-                           filter.config.bytes);
+                           filter.config.bytes).as_slice());
+            result.push_str(MESSAGE_END);
+
+            return result;
         }).unwrap();
     }
 
@@ -465,15 +469,17 @@ impl BloomServer {
             lbf.add_filter(bloom_filter);
         }
 
-        filter.config.size = lbf.size();
-
         if value > 0 {
             filter.counters.set_hits += 1;
         } else {
             filter.counters.set_misses += 1;
         }
 
-        return lbf.add(key).unwrap();
+        let value = lbf.add(key).unwrap();
+
+        filter.config.size = lbf.size();
+
+        return value;
     }
 }
 

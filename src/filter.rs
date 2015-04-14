@@ -26,7 +26,11 @@ pub mod test {
         // add first key
         assert!(filter.add(key1.clone()).unwrap() == add_values[0][0]);
 
+        println!("here");
+
         assert!(filter.size() == 1);
+
+        println!("here");
 
         assert!(filter.contains(&key1).unwrap() == contains_values[0][0]);
         assert!(filter.contains(&key2).unwrap() == contains_values[0][1]);

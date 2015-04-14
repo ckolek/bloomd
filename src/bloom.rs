@@ -215,7 +215,7 @@ mod tests {
     use super::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
     use filter;
 
-    static BITMAP_FILE : &'static str = "map.bmp";
+    static BITMAP_FILE : &'static str = "/tmp/map.bmp";
 
     #[test]
     fn test() {

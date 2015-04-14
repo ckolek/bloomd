@@ -26,8 +26,8 @@ impl BloomFilterCounters {
 }
 
 pub struct BloomFilter {
-    pub config   : BloomFilterConfig, // Filter-specific config
-    pub lbf      : bloom_lbf,         // Layered bloom filter
+    pub config   : BloomFilterConfig,      // Filter-specific config
+    pub lbf      : bloom_lbf,              // Layered bloom filter
     pub counters : BloomFilterCounters     // Counters
 }
 
