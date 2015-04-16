@@ -28,14 +28,14 @@ mod wrappers;
 
 // constants -------------------------------------------------------------------
 const MESSAGE_START           : &'static str = "START\r\n";
-const MESSAGE_END             : &'static str = "END\r\n";
-const MESSAGE_DONE            : &'static str = "Done\r\n";
-const MESSAGE_EXISTS          : &'static str = "Exists\r\n";
-const MESSAGE_NO_EXIST        : &'static str = "Filter does not exist\r\n";
+const MESSAGE_END             : &'static str = "END";
+const MESSAGE_DONE            : &'static str = "Done";
+const MESSAGE_EXISTS          : &'static str = "Exists";
+const MESSAGE_NO_EXIST        : &'static str = "Filter does not exist";
 const MESSAGE_YES             : &'static str = "Yes";
 const MESSAGE_NO              : &'static str = "No";
-const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
-const MESSAGE_BAD_ARGS        : &'static str = "Client Error: Bad arguments\r\n";
+const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported";
+const MESSAGE_BAD_ARGS        : &'static str = "Client Error: Bad arguments";
 const COMMAND_BULK_AB         : &'static str = "b";
 const COMMAND_BULK            : &'static str = "bulk";
 const COMMAND_CHECK_AB        : &'static str = "c";
@@ -188,8 +188,6 @@ impl BloomServer {
                 result.push_str(format!("{}", value).as_slice());
             }
 
-            result.push_str("\r\n");
-
             return result;
         }).unwrap();
     }
@@ -210,7 +208,7 @@ impl BloomServer {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.check(filter, key);
 
-            return format!("{}\r\n", value);
+            return format!("{}", value);
         }).unwrap();
     }
 
@@ -418,8 +416,6 @@ impl BloomServer {
                 result.push_str(format!("{}", value).as_slice());
             }
 
-            result.push_str("\r\n");
-
             return result;
         }).unwrap();
     }
@@ -440,7 +436,7 @@ impl BloomServer {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.set(filter, key);
 
-            return format!("{}\r\n", value);
+            return format!("{}", value);
         }).unwrap();
     }
 
