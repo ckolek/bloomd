@@ -4,6 +4,7 @@ use filter::IBloomFilter;
 use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter, load_bloom_filter};
 use lbf::bloom_lbf;
 use std::ops::{Deref, DerefMut};
+use std::io::fs;
 use std::io::fs::PathExtensions;
 
 const INI_SECTION_COUNTERS : &'static str = "counters";
@@ -198,6 +199,10 @@ impl BloomFilter {
 
     pub fn unload_filter(&mut self) {
         self.lbf = None;
+    }
+
+    pub fn delete(&mut self) {
+        fs::rmdir_recursive(&self.directory).unwrap();
     }
 }
 
