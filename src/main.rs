@@ -368,9 +368,6 @@ impl BloomServer {
             filters.remove(&filter_name);
         });
         
-        let directory = Path::new(format!("{}/filter.{}", self.config.data_dir, filter_name));
-        fs::rmdir_recursive(&directory).unwrap();
-        
         return String::from_str(MESSAGE_DONE);
     }
 
@@ -393,8 +390,10 @@ impl BloomServer {
         // remove the filter
         self.use_filters_mut(|filters| {
             filters.remove(&filter_name);
-            // TODO delete filter folder
         });
+        
+        let directory = Path::new(format!("{}/filter.{}", self.config.data_dir, filter_name));
+        fs::rmdir_recursive(&directory).unwrap();
 
         return String::from_str(MESSAGE_DONE);
     }
