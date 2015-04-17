@@ -125,6 +125,7 @@ impl BloomConfig {
 unsafe impl Send for BloomConfig { }
 
 const INI_SECTION_CONFIG          : &'static str = "config";
+const INI_OPTION_FILTER_NAME      : &'static str = "filter_name";
 const INI_OPTION_CAPACITY         : &'static str = "capacity";
 const INI_OPTION_PROBABILITY      : &'static str = "probability";
 const INI_OPTION_K_NUM            : &'static str = "k_num";
@@ -138,6 +139,7 @@ const INI_OPTION_FILTER_SIZES     : &'static str = "filter_sizes";
  * filter specific settings to an INI file.
  */
 pub struct BloomFilterConfig {
+    pub filter_name           : String,      // Filter name
     pub capacity              : u64,         // Total capacity
     pub probability           : f64,         // False positive probability
     pub k_num                 : u32,         // K value
@@ -149,8 +151,9 @@ pub struct BloomFilterConfig {
 }
 
 impl BloomFilterConfig {
-    pub fn new(capacity : u64, probability : f64, k_num : u32, in_memory : bool, bytes : u64) -> Self {
+    pub fn new(filter_name : String, capacity : u64, probability : f64, k_num : u32, in_memory : bool, bytes : u64) -> Self {
         return BloomFilterConfig {
+            filter_name: filter_name,
             capacity: capacity,
             probability: probability,
             k_num: k_num,
@@ -162,6 +165,18 @@ impl BloomFilterConfig {
     }
 
     pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
+        let filter_name : String;
+        match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_FILTER_NAME) {
+            Some(value) => {
+                if !value.is_empty() {
+                    filter_name = value;
+                } else {
+                    return Err(());
+                }
+            },
+            None => { return Err(()) }
+        };
+
         let capacity : u64;
         match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_CAPACITY) {
             Some(value) => { capacity = value },
@@ -225,6 +240,7 @@ impl BloomFilterConfig {
         assert!(bitmap_filenames.len() == filter_sizes.len());
 
         return Ok(BloomFilterConfig {
+            filter_name: filter_name,
             capacity: capacity,
             probability: probability,
             k_num: k_num,
@@ -238,6 +254,7 @@ impl BloomFilterConfig {
 
     pub fn add_to_ini(&self, ini : &mut IniFile) {
         ini.add_section(INI_SECTION_CONFIG);
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_FILTER_NAME,      self.filter_name.clone());
         ini.set(INI_SECTION_CONFIG, INI_OPTION_CAPACITY,         self.capacity.to_string());
         ini.set(INI_SECTION_CONFIG, INI_OPTION_PROBABILITY,      self.probability.to_string());
         ini.set(INI_SECTION_CONFIG, INI_OPTION_K_NUM,            self.k_num.to_string());

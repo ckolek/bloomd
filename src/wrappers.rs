@@ -96,7 +96,7 @@ impl BloomFilterCounters {
 
 pub struct BloomFilter {
     pub config      : BloomFilterConfig,   // Filter-specific config
-    pub lbf         : bloom_lbf,           // Layered bloom filter
+    lbf             : Option<bloom_lbf>,   // Layered bloom filter
     pub counters    : BloomFilterCounters, // Counters
     pub directory   : Path,                // File directory path,
     pub config_file : Path                 // INI file path 
@@ -110,7 +110,7 @@ impl BloomFilter {
 
         return BloomFilter {
             config      : config,
-            lbf         : lbf,
+            lbf         : Some(lbf),
             counters    : BloomFilterCounters::new(),
             directory   : directory,
             config_file : config_file
@@ -131,30 +131,22 @@ impl BloomFilter {
                         Err(_) => { return Err(()) }
                     };
 
-                    let params : bloom_filter_params = bloom_filter_params::new(config.bytes, config.k_num, config.capacity, config.probability);
-
-                    let mut filters : Vec<bloom_bloomfilter> = Vec::new();
-                    for bitmap_filename in config.bitmap_filenames.iter() {
-                        let index : usize = filters.len();
-
-                        filters.push(load_bloom_filter(&params, config.filter_sizes[index], bitmap_filename.as_slice()));
-                    }
-
-                    let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), filters);
-
                     let counters : BloomFilterCounters;
                     match BloomFilterCounters::from_ini(&ini) {
                         Ok(_counters) => { counters = _counters },
                         Err(_) => { return return Err(()) }
                     };
 
-                    return Ok(BloomFilter {
+                    let mut bloom_filter : BloomFilter = BloomFilter {
                         config: config,
-                        lbf: lbf,
+                        lbf: None,
                         counters: counters,
                         directory: directory,
                         config_file: config_file
-                    });
+                    };
+                    bloom_filter.load_filter();
+
+                    return Ok(bloom_filter);
                 },
                 Err(_) => { Err(()) }
             };
@@ -170,9 +162,9 @@ impl BloomFilter {
 
         let bitmap_filename : String = String::from_str(path.as_str().unwrap());
 
-        let bloom_filter : bloom_bloomfilter = create_bloom_filter(&self.lbf.params, bitmap_filename.as_slice());
+        let bloom_filter : bloom_bloomfilter = create_bloom_filter(&(**self).params, bitmap_filename.as_slice());
 
-        self.lbf.add_filter(bloom_filter);
+        (**self).add_filter(bloom_filter);
         self.config.bitmap_filenames.push(bitmap_filename);
         self.config.filter_sizes.push(0);
     }
@@ -186,7 +178,26 @@ impl BloomFilter {
             println!("Could not write to config file: {}", self.config_file.as_str().unwrap());
         } 
 
-        return self.lbf.flush();
+        return (**self).flush();
+    }
+
+    fn load_filter(&mut self) {
+        let params : bloom_filter_params = bloom_filter_params::new(self.config.bytes, self.config.k_num, self.config.capacity, self.config.probability);
+
+        let mut filters : Vec<bloom_bloomfilter> = Vec::new();
+        for bitmap_filename in self.config.bitmap_filenames.iter() {
+            let index : usize = filters.len();
+
+            filters.push(load_bloom_filter(&params, self.config.filter_sizes[index], bitmap_filename.as_slice()));
+        }
+
+        let lbf : bloom_lbf = bloom_lbf::new(params, self.config.filter_name.clone(), filters);
+
+        self.lbf = Some(lbf);
+    }
+
+    pub fn unload_filter(&mut self) {
+        self.lbf = None;
     }
 }
 
@@ -194,12 +205,16 @@ impl Deref for BloomFilter {
     type Target = bloom_lbf;
 
     fn deref<'a>(&'a self) -> &'a bloom_lbf {
-        return &self.lbf;
+        return self.lbf.as_ref().unwrap();
     }
 }
 
 impl DerefMut for BloomFilter {
     fn deref_mut<'a>(&'a mut self) -> &'a mut bloom_lbf {
-        return &mut self.lbf;
+        if self.lbf.is_none() {
+            self.load_filter();
+        }
+
+        return self.lbf.as_mut().unwrap();
     }
 }

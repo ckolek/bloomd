@@ -285,7 +285,7 @@ impl BloomServer {
                 fs::mkdir(&directory, io::USER_RWX).unwrap();
 
                 let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
-                let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, params.k_num, in_memory, params.bytes);
+                let filter_config : BloomFilterConfig = BloomFilterConfig::new(filter_name.clone(), capacity, probability, params.k_num, in_memory, params.bytes);
                 let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), Vec::new());
 
                 bloom_filter = BloomFilter::new(filter_config, lbf, directory);
@@ -300,13 +300,49 @@ impl BloomServer {
     // process a 'close' command (close <filter>)
     // returns a response String
     fn process_close(&self, args : Vec<&str>) -> String {
-        return String::new();
+        // handle invalid arguments
+        if args.is_empty() {
+            return String::from_str(MESSAGE_BAD_ARGS);
+        }
+
+        // get filter name
+        let filter_name : String = String::from_str(args[0]);
+        
+        // check that filter exists
+        if !self.contains_filter_named(&filter_name) {
+            return String::from_str(MESSAGE_NO_EXIST);
+        }
+
+        // remove the filter
+        self.use_filter_mut(&filter_name, |filter| {
+            filter.unload_filter();
+        });
+
+        return String::from_str(MESSAGE_DONE);
     }
 
     // process a 'clear' command (clear <filter>)
     // returns a response String
     fn process_clear(&self, args : Vec<&str>) -> String {
-        return String::new();
+        // handle invalid arguments
+        if args.is_empty() {
+            return String::from_str(MESSAGE_BAD_ARGS);
+        }
+
+        // get filter name
+        let filter_name : String = String::from_str(args[0]);
+        
+        // check that filter exists
+        if !self.contains_filter_named(&filter_name) {
+            return String::from_str(MESSAGE_NO_EXIST);
+        }
+
+        // remove the filter
+        self.use_filters_mut(|filters| {
+            filters.remove(&filter_name);
+        });
+
+        return String::from_str(MESSAGE_DONE);
     }
 
     // returns a response String (drop <filter>)
@@ -328,6 +364,7 @@ impl BloomServer {
         // remove the filter
         self.use_filters_mut(|filters| {
             filters.remove(&filter_name);
+            // TODO delete filter folder
         });
 
         return String::from_str(MESSAGE_DONE);
@@ -508,8 +545,7 @@ impl BloomServer {
     // do a check for the given key in the given BloomFilter and return the corresponding value
     // returns a response String
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
-        let ref lbf : bloom_lbf = filter.lbf;
-        let value : u32 = lbf.contains(&key).unwrap();
+        let value : u32 = filter.contains(&key).unwrap();
 
         if value > 0 {
             filter.counters.check_hits += 1;
@@ -594,6 +630,8 @@ fn start(server: BloomServer) {
         fs::mkdir(&data_dir, io::USER_RWX).unwrap();
     } else if !data_dir.is_dir() {
         panic!("Invalid data_dir: {} is not a directory", data_dir.as_str().unwrap());
+    } else {
+        
     }
 
     // listen at <bind_host>:<tcp_port>
