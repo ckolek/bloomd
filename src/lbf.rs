@@ -23,6 +23,10 @@ impl bloom_lbf {
         };
     }
 
+    pub fn check(&mut self) {
+        // this is a little hack
+    }
+
     pub fn add_filter(&mut self, filter : bloom_bloomfilter) {
         self.filters.push(filter);
         self.num_filters += 1;

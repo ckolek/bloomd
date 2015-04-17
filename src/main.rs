@@ -570,6 +570,8 @@ impl BloomServer {
 
     // do a check for the given key in the given BloomFilter and return the corresponding value
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
+        filter.check();
+
         let value : u32 = filter.contains(&key).unwrap();
 
         if value > 0 {
@@ -583,6 +585,8 @@ impl BloomServer {
 
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
+        filter.check();
+
         let value : u32 = filter.contains(&key).unwrap();
 
         if value == filter.num_filters {
