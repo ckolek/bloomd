@@ -2,19 +2,44 @@
 extern crate libc;
 
 use std::{ffi};
+use std::ops::{BitAnd, BitOr, BitXor};
 
 #[repr(C)]
 #[derive(Copy)]
 pub enum bitmap_mode {
     SHARED     = 1,
     PERSISTENT = 2,
-    ANONYMOUS  = 3,
-    NEW_BITMAP = 4
+    ANONYMOUS  = 4,
+    NEW_BITMAP = 8
+}
+
+impl BitAnd for bitmap_mode {
+    type Output = u32;
+
+    fn bitand(self, _rhs : bitmap_mode) -> u32 {
+        return self as u32 & _rhs as u32;
+    }
+}
+
+impl BitOr for bitmap_mode {
+    type Output = u32;
+
+    fn bitor(self, _rhs : bitmap_mode) -> u32 {
+        return self as u32 | _rhs as u32;
+    }
+}
+
+impl BitXor for bitmap_mode {
+    type Output = u32;
+
+    fn bitxor(self, _rhs : bitmap_mode) -> u32 {
+        return self as u32 ^ _rhs as u32;
+    }
 }
 
 #[repr(C)]
 pub struct bloom_bitmap {
-    mode        : bitmap_mode,
+    mode        : u32,
     fileno      : i32,
     size        : u64,
     mmap        : Vec<i8>,
@@ -22,11 +47,11 @@ pub struct bloom_bitmap {
 }
 
 impl bloom_bitmap {
-    fn new(mode : bitmap_mode, fileno : i32, size : u64) -> Self {
+    fn new(mode : u32, fileno : i32, size : u64) -> Self {
         return bloom_bitmap { mode: mode, fileno: fileno, size: size, mmap: Vec::with_capacity(size as usize), dirty_pages: Vec::with_capacity(size as usize) };
     }
 
-    pub fn from_file(fileno : i32, len : u64, mode : bitmap_mode) -> Result<Self, ()> {
+    pub fn from_file(fileno : i32, len : u64, mode : u32) -> Result<Self, ()> {
         let mut map : bloom_bitmap = bloom_bitmap::new(mode, fileno, len);
 
         if unsafe { externals::bitmap_from_file(fileno, len, mode, &mut map as *mut bloom_bitmap) } < 0 {
@@ -36,7 +61,7 @@ impl bloom_bitmap {
         return Ok(map);
     }
 
-    pub fn from_filename(filename : &str, len : u64, create : bool, mode : bitmap_mode) -> Result<Self, ()> {
+    pub fn from_filename(filename : &str, len : u64, create : bool, mode : u32) -> Result<Self, ()> {
         let mut map : bloom_bitmap  = bloom_bitmap::new(mode, 0, len);
 
         let filename : ffi::CString = ffi::CString::from_slice(filename.as_bytes());
@@ -66,13 +91,13 @@ impl Drop for bloom_bitmap {
 
 mod externals {
     use super::libc::{c_char, c_int, c_ulong};
-    use super::{bitmap_mode, bloom_bitmap};
+    use super::{bloom_bitmap};
 
     #[link(name = "bloom")]
     extern {
-        pub fn bitmap_from_file(fileno : c_int, len : c_ulong, mode : bitmap_mode, map : *mut bloom_bitmap) -> c_int;
+        pub fn bitmap_from_file(fileno : c_int, len : c_ulong, mode : u32, map : *mut bloom_bitmap) -> c_int;
 
-        pub fn bitmap_from_filename(filename : *const c_char, len : c_ulong, create : c_int, mode : bitmap_mode, map : *mut bloom_bitmap) -> c_int;
+        pub fn bitmap_from_filename(filename : *const c_char, len : c_ulong, create : c_int, mode : u32, map : *mut bloom_bitmap) -> c_int;
 
         pub fn bitmap_flush(map : *mut bloom_bitmap) -> c_int;
 

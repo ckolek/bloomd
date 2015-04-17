@@ -27,8 +27,6 @@ pub struct IniFile {
 	options: Vec<Vec<String>>,
 	/// INI structure: sections contain options (name=>value)
 	opts: HashMap<String, HashMap<String, String>>,
-	/// File path
-	path: Path,
 	/// Section names, used to keep order (as HashMap doesn't).
 	sections: Vec<String>
 }
@@ -51,12 +49,6 @@ impl IniFile {
 		} else {
 			panic!("The section {:?} already exists!", section);
 		}
-	}
-	/**
-	 * Getter on filepath.
-	 */
-	pub fn filepath(&self) -> String {
-		format!("{}", self.path.display())
 	}
 	/**
 	 * Get an option value for the named section.
@@ -109,7 +101,7 @@ impl IniFile {
 		self.opts.contains_key(&section.to_string())
 	}
 	pub fn new() -> IniFile {
-		IniFile { comments: HashMap::new(), options: Vec::new(), path: Path::new(""), opts: HashMap::new(), sections: Vec::new() }
+		IniFile { comments: HashMap::new(), options: Vec::new(), opts: HashMap::new(), sections: Vec::new() }
 	}
 
     pub fn from_filename(filename : &str) -> IoResult<Self> {
@@ -135,8 +127,7 @@ impl IniFile {
 	 * Read and parse configuration data from filepath.
 	 */
 	pub fn read(&mut self, filepath: &str) -> Result<(), IoError> {
-		self.path = Path::new(filepath);
-		let file = File::open(&self.path);
+		let file = File::open(&Path::new(filepath));
 		match file {
 			Err(e) => {return Err(e)},
 			_ => { }
@@ -234,12 +225,6 @@ impl IniFile {
 		}
 	}
 	/**
-	 * Save the current configuration into the original file.
-	 */
-	pub fn save(&self) {
-		self.write(self.filepath().as_slice());
-	}
-	/**
 	 * Return a list of the available sections.
 	 */
 	pub fn sections(&self) -> Vec<String> {
@@ -253,38 +238,35 @@ impl IniFile {
 	/**
 	 * If the given section exists, set the given option to the specified value; otherwise panic!().
 	 */
-	pub fn set(&mut self, section: String, option: String, value: String) {
-		let asection = section.as_slice();
-//		let aoption = option.as_slice();
-		if !self.has_section(asection) {
+	pub fn set(&mut self, section: &str, option: &str, value: String) {
+		if !self.has_section(section) {
 			panic!("Section [{:?}] does not exist!");
 		}
-		if !self.has_option(asection, option.as_slice()) {
-			self.opts.get_mut(&section).unwrap().insert(option.clone(), value);
+
+		if !self.has_option(section, option) {
+            let section = String::from_str(section);
+
+			self.opts.get_mut(&section).unwrap().insert(String::from_str(option), value);
 			let section_index = self.sections.as_slice().position_elem(&section).unwrap();
-			self.options.get_mut(section_index).unwrap().push(option.clone());
+			self.options.get_mut(section_index).unwrap().push(String::from_str(option));
 		} else {
-			self.opts.get_mut(&section).unwrap().insert(option, value);
+            let section = String::from_str(section);
+
+			self.opts.get_mut(&section).unwrap().insert(String::from_str(option), value);
 		}
-	}
-	/**
-	 * Redefine file path.
-	 */
-	pub fn set_path(&mut self, filepath: Path) {
-		self.path = filepath;
 	}
 	/**
 	 * Write a representation of the configuration to the specified file path.
 	 * This representation can be parsed by a future read() call.
 	 */
-	pub fn write(&self, filepath: &str) {
-		// http://doc.rust-lang.org/std/io/
-		let mut file = File::create(&Path::new(filepath));
-		match file.write(format!("{}", self).as_bytes()) {
-			Ok(()) => { },
-			Err(e) => println!("failed to write to {:?}: {}", self.path, e),
-		}
+	pub fn write_to_filename(&self, filename: &str) -> IoResult<()> {
+        return self.write_to_path(&Path::new(filename));
 	}
+
+    pub fn write_to_path(&self, filepath: &Path) -> IoResult<()> {
+		let mut file = File::create(filepath);
+		return file.write(format!("{}", self).as_bytes());
+    }
 }
 
 /**

@@ -1,6 +1,7 @@
 use inifile::IniFile;
 use config::BloomFilterConfig;
-use bloom::{bloom_filter_params, bloom_bloomfilter, load_bloom_filter};
+use filter::IBloomFilter;
+use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter, load_bloom_filter};
 use lbf::bloom_lbf;
 use std::ops::{Deref, DerefMut};
 use std::io::fs::PathExtensions;
@@ -81,6 +82,16 @@ impl BloomFilterCounters {
     pub fn sets(&self) -> u64 {
         return self.set_hits + self.set_misses;
     }
+
+    pub fn add_to_ini(&self, ini : &mut IniFile) {
+        ini.add_section(INI_SECTION_COUNTERS);
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_CHECK_HITS, self.check_hits.to_string());
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_CHECK_MISSES, self.check_misses.to_string());
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_SET_HITS, self.set_hits.to_string());
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_SET_MISSES, self.set_misses.to_string());
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_PAGE_INS, self.page_ins.to_string());
+        ini.set(INI_SECTION_COUNTERS, INI_OPTION_PAGE_OUTS, self.page_outs.to_string());
+    }
 }
 
 pub struct BloomFilter {
@@ -95,6 +106,7 @@ impl BloomFilter {
     pub fn new(config : BloomFilterConfig, lbf : bloom_lbf, directory : Path) -> BloomFilter {
         let mut config_file : Path = directory.clone();
         config_file.push(lbf.name.as_slice());
+        config_file.set_extension("ini");
 
         return BloomFilter {
             config      : config,
@@ -151,10 +163,30 @@ impl BloomFilter {
         return Err(());
     }
 
-    pub fn flush() -> Result<(), ()> {
-        let mut ini : IniFile = IniFile::new();
+    pub fn add_filter(&mut self, value : u32) {
+        let mut path : Path = self.directory.clone();
+        path.push(value.to_string());
+        path.set_extension("bmp");
 
-        return Ok(());
+        let bitmap_filename : String = String::from_str(path.as_str().unwrap());
+
+        let bloom_filter : bloom_bloomfilter = create_bloom_filter(&self.lbf.params, bitmap_filename.as_slice());
+
+        self.lbf.add_filter(bloom_filter);
+        self.config.bitmap_filenames.push(bitmap_filename);
+        self.config.filter_sizes.push(0);
+    }
+
+    pub fn flush(&mut self) -> Result<(), ()> {
+        let mut ini : IniFile = IniFile::new();
+        self.config.add_to_ini(&mut ini);
+        self.counters.add_to_ini(&mut ini);
+
+        if ini.write_to_path(&self.config_file).is_err() {
+            println!("Could not write to config file: {}", self.config_file.as_str().unwrap());
+        } 
+
+        return self.lbf.flush();
     }
 }
 

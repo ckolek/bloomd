@@ -6,7 +6,7 @@
 
 use config::{BloomConfig, BloomFilterConfig};
 use filter::IBloomFilter;
-use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter_params, create_bloom_filter};
+use bloom::{bloom_filter_params, create_bloom_filter_params};
 use lbf::bloom_lbf;
 use wrappers::BloomFilter;
 use std::os;
@@ -351,7 +351,7 @@ impl BloomServer {
 
             // flush the filter
             self.use_filter_mut(&filter_name, |filter| {
-                filter.lbf.flush().unwrap();
+                filter.flush().unwrap();
             }).unwrap();
         // handle all filters flush
         } else {
@@ -523,13 +523,10 @@ impl BloomServer {
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
     // returns a response String
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
-        let ref mut lbf : bloom_lbf = filter.lbf;
-        let value : u32 = lbf.contains(&key).unwrap();
+        let value : u32 = filter.contains(&key).unwrap();
 
-        if value == lbf.num_filters {
-            let bloom_filter : bloom_bloomfilter = create_bloom_filter(&lbf.params, format!("{}/filter.{}/{}.bmp", &self.config.data_dir, &lbf.name, value).as_slice());
-
-            lbf.add_filter(bloom_filter);
+        if value == filter.num_filters {
+            filter.add_filter(value);
         }
 
         if value > 0 {
@@ -538,9 +535,11 @@ impl BloomServer {
             filter.counters.set_misses += 1;
         }
 
-        let value = lbf.add(key).unwrap();
+        let value = filter.add(key).unwrap();
+        let index : usize = (value - 1) as usize;
 
-        filter.config.size = lbf.size();
+        filter.config.size = filter.size();
+        filter.config.filter_sizes[index] = filter.get_filter_size(index);
 
         return value;
     }

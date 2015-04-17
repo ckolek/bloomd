@@ -129,13 +129,13 @@ pub fn create_bloom_filter_params(capacity : u64, probability : f64) -> bloom_fi
 }
 
 pub fn create_bloom_filter(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter {
-    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
+    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::PERSISTENT | bitmap_mode::NEW_BITMAP).unwrap();
 
     return bloom_bloomfilter::new(params.k_num, 0, map, true);
 }
 
 pub fn load_bloom_filter(params : &bloom_filter_params, count : u64, bitmap_filename : &str) -> bloom_bloomfilter {
-    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, false, bitmap_mode::PERSISTENT).unwrap();
+    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, false, bitmap_mode::PERSISTENT as u32).unwrap();
 
     return bloom_bloomfilter::new(params.k_num, count, map, false);
 }

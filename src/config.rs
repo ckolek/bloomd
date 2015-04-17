@@ -200,15 +200,29 @@ impl BloomFilterConfig {
 
         let bitmap_filenames : Vec<String>;
         match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_BITMAP_FILENAMES) {
-            Some(value) => { bitmap_filenames = value.split_str(",").map(|piece| String::from_str(piece) ).collect() },
-            None => { return Err(()) }
+            Some(value) => {
+                if !value.is_empty() {
+                    bitmap_filenames = value.split_str(",").map(|piece| String::from_str(piece) ).collect()
+                } else {
+                    bitmap_filenames = Vec::new()
+                }
+            }, 
+            None => { bitmap_filenames = Vec::new(); }
         };
 
         let filter_sizes : Vec<u64>;
         match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_FILTER_SIZES) {
-            Some(value) => { filter_sizes = value.split_str(",").map(|piece| FromStr::from_str(piece).unwrap() ).collect::<Vec<u64>>() },
-            None => { return Err(()) }
+            Some(value) => {
+                if !value.is_empty() {
+                    filter_sizes = value.split_str(",").map(|piece| FromStr::from_str(piece).unwrap() ).collect::<Vec<u64>>()
+                } else {
+                    filter_sizes = Vec::new()
+                }
+            },
+            None => { filter_sizes = Vec::new(); }
         };
+
+        assert!(bitmap_filenames.len() == filter_sizes.len());
 
         return Ok(BloomFilterConfig {
             capacity: capacity,
@@ -220,5 +234,17 @@ impl BloomFilterConfig {
             bitmap_filenames: bitmap_filenames,
             filter_sizes: filter_sizes
         });
+    }
+
+    pub fn add_to_ini(&self, ini : &mut IniFile) {
+        ini.add_section(INI_SECTION_CONFIG);
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_CAPACITY,         self.capacity.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_PROBABILITY,      self.probability.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_K_NUM,            self.k_num.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_IN_MEMORY,        self.in_memory.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_BYTES,            self.bytes.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_SIZE,             self.size.to_string());
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_BITMAP_FILENAMES, self.bitmap_filenames.connect(","));
+        ini.set(INI_SECTION_CONFIG, INI_OPTION_FILTER_SIZES,     self.filter_sizes.iter().map(|value| value.to_string() ).collect::<Vec<String>>().connect(","));
     }
 }

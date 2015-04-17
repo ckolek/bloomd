@@ -27,6 +27,10 @@ impl bloom_lbf {
         self.filters.push(filter);
         self.num_filters += 1;
     }
+
+    pub fn get_filter_size(&self, index : usize) -> u64 {
+        return self.filters[index].size();
+    }
 }
 
 impl IBloomFilter<u32> for bloom_lbf {
