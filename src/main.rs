@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unstable_features)]
 #![feature(unsafe_destructor)]
+#![allow(improper_ctypes)]
 
 use config::{BloomConfig, BloomFilterConfig};
 use filter::IBloomFilter;
@@ -28,14 +29,14 @@ mod wrappers;
 
 // constants -------------------------------------------------------------------
 const MESSAGE_START           : &'static str = "START\r\n";
-const MESSAGE_END             : &'static str = "END\r\n";
-const MESSAGE_DONE            : &'static str = "Done\r\n";
-const MESSAGE_EXISTS          : &'static str = "Exists\r\n";
-const MESSAGE_NO_EXIST        : &'static str = "Filter does not exist\r\n";
+const MESSAGE_END             : &'static str = "END";
+const MESSAGE_DONE            : &'static str = "Done";
+const MESSAGE_EXISTS          : &'static str = "Exists";
+const MESSAGE_NO_EXIST        : &'static str = "Filter does not exist";
 const MESSAGE_YES             : &'static str = "Yes";
 const MESSAGE_NO              : &'static str = "No";
-const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported\r\n";
-const MESSAGE_BAD_ARGS        : &'static str = "Client Error: Bad arguments\r\n";
+const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported";
+const MESSAGE_BAD_ARGS        : &'static str = "Client Error: Bad arguments";
 const COMMAND_BULK_AB         : &'static str = "b";
 const COMMAND_BULK            : &'static str = "bulk";
 const COMMAND_CHECK_AB        : &'static str = "c";
@@ -198,8 +199,6 @@ impl BloomServer {
                 result.push_str(format!("{}", value).as_slice());
             }
 
-            result.push_str("\r\n");
-
             return result;
         }).unwrap();
     }
@@ -225,7 +224,7 @@ impl BloomServer {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.check(filter, key);
 
-            return format!("{}\r\n", value);
+            return format!("{}", value);
         }).unwrap();
     }
 
@@ -477,8 +476,6 @@ impl BloomServer {
                 result.push_str(format!("{}", value).as_slice());
             }
 
-            result.push_str("\r\n");
-
             return result;
         }).unwrap();
     }
@@ -504,7 +501,7 @@ impl BloomServer {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.set(filter, key);
 
-            return format!("{}\r\n", value);
+            return format!("{}", value);
         }).unwrap();
     }
 
@@ -620,5 +617,74 @@ fn start(server: BloomServer) {
             },
             Err(e) => { println!("failed to connect to incoming client: {}", e) }
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BloomServer, MESSAGE_NO_EXIST, MESSAGE_EXISTS, MESSAGE_DONE, MESSAGE_BAD_ARGS, MESSAGE_NOT_IMPLEMENTED};
+    use config::{BloomConfig};
+
+    #[test]
+    fn test_server () {
+        // Start by making a default server instance
+        let server : BloomServer = BloomServer::new(BloomConfig::default());
+        
+        // Test create, including when filter already exists
+        test_command(&server, "create filter", MESSAGE_DONE);
+        test_command(&server, "create filter", MESSAGE_EXISTS);
+        
+        // Test set (and check)
+        test_command(&server, "check filter first", "0");
+        test_command(&server, "set filter first", "1");
+        test_command(&server, "c filter first", "1");
+        test_command(&server, "s filter first", "2");
+        test_command(&server, "c filter first", "2");
+        test_command(&server, "s filter first", "3");
+        test_command(&server, "c filter first", "3");
+        
+        // Test bad entries for set and check
+        test_command(&server, "set filetr first", MESSAGE_NO_EXIST);
+        test_command(&server, "check filetr first", MESSAGE_NO_EXIST);
+        test_command(&server, "set filter first second", MESSAGE_BAD_ARGS);
+        test_command(&server, "set filter first second", MESSAGE_BAD_ARGS);
+        test_command(&server, "check filter", MESSAGE_BAD_ARGS);
+        test_command(&server, "set filter", MESSAGE_BAD_ARGS);
+        
+        // Test multi and bulk
+        test_command(&server, "multi filter first second third", "3 0 0");
+        test_command(&server, "bulk filter first second third", "4 1 1");
+        test_command(&server, "b filter first second third", "5 2 2");
+        test_command(&server, "m filter first second third", "5 2 2");
+        
+        // Test bad entries for multi and bulk
+        test_command(&server, "bulk filetr first second third", MESSAGE_NO_EXIST);
+        test_command(&server, "multi filetr first second third", MESSAGE_NO_EXIST);
+        test_command(&server, "check filter", MESSAGE_BAD_ARGS);
+        test_command(&server, "set filter", MESSAGE_BAD_ARGS);
+        
+        // Test list
+        test_command(&server, "list fake_prefix", "START\r\nEND");
+        test_command(&server, "list", "START\r\nfilter 0.0001 239627 100000 3\r\nEND");
+        
+        // Test info
+        let info_results : &str = "START\r\ncapacity 100000\r\nchecks 10\r\ncheck_hits 7\r\ncheck_misses 3\r\npage_ins 0\r\npage_outs 0\r\nprobability 0.0001\r\nsets 9\r\nset_hits 6\r\nset_misses 3\r\nsize 3\r\nstorage 239627\r\nEND";
+        test_command(&server, "info", MESSAGE_BAD_ARGS);
+        test_command(&server, "info filetr", MESSAGE_NO_EXIST);
+        test_command(&server, "info filter", info_results);
+        
+        // Test nonexistent commands
+        test_command(&server, "infor filter", MESSAGE_NOT_IMPLEMENTED);
+        test_command(&server, "sette filter first", MESSAGE_NOT_IMPLEMENTED);
+        
+        // Clean up in case of persistence, and test drop
+        test_command(&server, "drop", MESSAGE_BAD_ARGS);
+        test_command(&server, "drop filter", MESSAGE_DONE);
+        test_command(&server, "drop filter", MESSAGE_NO_EXIST);
+    }
+    
+    fn test_command(server : &BloomServer, command : &str, result : &str) {
+        assert_eq!(server.interpret_request(command).as_slice(),
+                   result);
     }
 }
