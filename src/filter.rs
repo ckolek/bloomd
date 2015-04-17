@@ -1,4 +1,5 @@
 
+// A trait representing the methods common to all bloom filters
 pub trait IBloomFilter<T> {
     fn add(&mut self, key : String) -> Result<T, ()>;
     fn contains(&self, key : &String) -> Result<T, ()>;

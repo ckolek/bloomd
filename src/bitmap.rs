@@ -47,10 +47,12 @@ pub struct bloom_bitmap {
 }
 
 impl bloom_bitmap {
+    // Returns a new bitmap 
     fn new(mode : u32, fileno : i32, size : u64) -> Self {
         return bloom_bitmap { mode: mode, fileno: fileno, size: size, mmap: Vec::with_capacity(size as usize), dirty_pages: Vec::with_capacity(size as usize) };
     }
 
+    // Returns the bitmap from an opened file
     pub fn from_file(fileno : i32, len : u64, mode : u32) -> Result<Self, ()> {
         let mut map : bloom_bitmap = bloom_bitmap::new(mode, fileno, len);
 
@@ -61,6 +63,7 @@ impl bloom_bitmap {
         return Ok(map);
     }
 
+    // Opens the file with the name given and loads the bitmap in it
     pub fn from_filename(filename : &str, len : u64, create : bool, mode : u32) -> Result<Self, ()> {
         let mut map : bloom_bitmap  = bloom_bitmap::new(mode, 0, len);
 
@@ -72,7 +75,8 @@ impl bloom_bitmap {
 
         return Ok(map);
     }
-
+    
+    // Flushes the changes to the bitmap to the disk
     pub fn flush(&mut self) -> Result<(), ()> {
         if unsafe { externals::bitmap_flush(self as *mut bloom_bitmap) } < 0 {
             return Err(());
@@ -82,6 +86,7 @@ impl bloom_bitmap {
     }
 }
 
+// Frees the C memory if the Rust object is dropped
 #[unsafe_destructor]
 impl Drop for bloom_bitmap {
     fn drop(&mut self) {
