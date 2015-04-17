@@ -28,6 +28,8 @@ mod lbf;
 mod wrappers;
 
 // constants -------------------------------------------------------------------
+const USAGE                   : &'static str = "bloomd [-f config_file]";
+
 const FILTER_FOLDER_PREFIX    : &'static str = "filter.";
 
 const MESSAGE_START           : &'static str = "START\r\n";
@@ -570,6 +572,8 @@ impl BloomServer {
 
     // do a check for the given key in the given BloomFilter and return the corresponding value
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
+        filter.check();
+
         let value : u32 = filter.contains(&key).unwrap();
 
         if value > 0 {
@@ -583,6 +587,8 @@ impl BloomServer {
 
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
+        filter.check();
+
         let value : u32 = filter.contains(&key).unwrap();
 
         if value == filter.num_filters {
@@ -624,10 +630,10 @@ fn main() {
                     "-f" => {
                         match args.next() {
                             Some(value) => config_filename = Some(value.as_slice()),
-                            None => panic!("missing value for flag \"-f\"")
+                            None => panic!("missing value for flag \"-f\"\r\n\r\n{}", USAGE)
                         }
                     },
-                    _ => panic!("invalid argument: {}", arg)
+                    _ => panic!("invalid argument: {}\r\n\r\n{}", arg, USAGE)
                 };
             },
             None => { break }
