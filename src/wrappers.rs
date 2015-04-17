@@ -133,7 +133,7 @@ impl BloomFilter {
 
     // Reads in a Bloom Filter from a given directory; returns an error if
     // the ini file is missing or lacks information
-    pub fn from_directory(directory : &Path, filter_name : &String) -> Result<Self, ()> {
+    pub fn from_directory(directory : &Path, filter_name : &String, load_filter : bool) -> Result<Self, ()> {
         if directory.exists() {
             let mut config_file : Path = directory.clone();
             config_file.push(filter_name.as_slice());
@@ -161,7 +161,10 @@ impl BloomFilter {
                         config_file: config_file,
                         cold_index: 0
                     };
-                    bloom_filter.load_filter();
+
+                    if load_filter {
+                        bloom_filter.load_filter();
+                    }
 
                     return Ok(bloom_filter);
                 },
