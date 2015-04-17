@@ -26,8 +26,10 @@ impl bloom_lbf {
         };
     }
 
+    // Minor little hack; we call this so the filter loads in memory before we
+    // call contains or something else on it
     pub fn check(&mut self) {
-        // this is a little hack
+        // Don't actually need to do anything here; calling a function is enough
     }
     
     // adds a new layer to the lbf
