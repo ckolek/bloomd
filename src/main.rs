@@ -623,6 +623,7 @@ impl BloomServer {
 
 unsafe impl Send for BloomServer { }
 
+// represents a task that executes subtasks periodically
 struct Worker {
     timer    : Timer,
     receiver : Receiver<()>,
@@ -630,9 +631,9 @@ struct Worker {
 }
 
 impl Worker {
-    fn new() -> Self {
+    fn new(duration : Duration) -> Self {
         let mut timer : Timer = Timer::new().unwrap();
-        let receiver : Receiver<()> = timer.periodic(Duration::minutes(1));
+        let receiver : Receiver<()> = timer.periodic(duration);
 
         return Worker {
             timer: timer,
@@ -667,6 +668,7 @@ impl FnMut<(), ()> for Worker {
 
 unsafe impl Send for Worker { }
 
+// task for flushing filters
 struct FlushTask {
     server     : Arc<BloomServer>,
     last_flush : u64
@@ -690,6 +692,7 @@ impl FnMut<(u64,), ()> for FlushTask {
 
 unsafe impl Send for FlushTask { }
 
+// task for clearing cold filters
 struct ClearTask {
     server : Arc<BloomServer>,
     last_clear : u64
@@ -776,18 +779,20 @@ fn start(server: BloomServer) {
     let flush_task : FlushTask = FlushTask::new(server.clone());
     let clear_task : ClearTask = ClearTask::new(server.clone());
 
+    let duration : Duration = Duration::minutes(1);
+
     // create worker threads
     if server.config.worker_threads <= 1 {
-        let mut worker : Worker = Worker::new();
+        let mut worker : Worker = Worker::new(duration);
         worker.add_task(flush_task);
         worker.add_task(clear_task);
 
         Thread::spawn(worker);
     } else {
-        let mut worker1 : Worker = Worker::new();
+        let mut worker1 : Worker = Worker::new(duration);
         worker1.add_task(flush_task);
 
-        let mut worker2 : Worker = Worker::new();
+        let mut worker2 : Worker = Worker::new(duration);
         worker2.add_task(clear_task);
 
         Thread::spawn(worker1);
