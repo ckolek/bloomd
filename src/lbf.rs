@@ -49,9 +49,11 @@ impl IBloomFilter<u32> for bloom_lbf {
     fn add(&mut self, key : String) -> Result<u32, ()> {
         let mut index : u32 = 0;
 
+        // Check each filter in the lbf
         for ref mut filter in self.filters.iter_mut() {
             index += 1;
 
+            // If this filter doesn't contain the key, add it and return
             match filter.contains(&key) {
                 Ok(in_filter) => {
                     if !in_filter {
@@ -65,6 +67,7 @@ impl IBloomFilter<u32> for bloom_lbf {
             }
         }
 
+        // Was in every layer of the filter; return 0 to indicate that
         return Ok(0);
     }
 
@@ -72,6 +75,7 @@ impl IBloomFilter<u32> for bloom_lbf {
     fn contains(&self, key : &String) -> Result<u32, ()> {
         let mut index : u32 = 0;
         
+        // Check each layer, break when we find one that doesn't contain the key
         for ref filter in self.filters.iter() {
             match filter.contains(key) {
                 Ok(in_filter) => { if !in_filter { break } },
@@ -96,7 +100,8 @@ impl IBloomFilter<u32> for bloom_lbf {
     // Saves the layered bloom filter to the disk
     fn flush(&mut self) -> Result<(), ()> {
         let mut result : Result<(), ()> = Ok(());
-
+        
+        // Flush each layer of the filter
         for ref mut filter in self.filters.iter_mut() {
             if filter.flush().is_err() {
                 result = Err(());
@@ -107,6 +112,7 @@ impl IBloomFilter<u32> for bloom_lbf {
     }
 }
 
+// Drop each layer of this filter, when it is dropped
 impl Drop for bloom_lbf {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
