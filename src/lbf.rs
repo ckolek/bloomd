@@ -3,6 +3,8 @@ extern crate libc;
 use filter::IBloomFilter;
 use bloom::{bloom_bloomfilter, bloom_filter_params};
 
+
+// A struct representing a layered bloom filter
 #[repr(C)]
 pub struct bloom_lbf {
     pub params      : bloom_filter_params,
@@ -12,6 +14,7 @@ pub struct bloom_lbf {
 }
 
 impl bloom_lbf {    
+    // Returns an empty layered bloom filter
     pub fn new(params  : bloom_filter_params,
                name    : String,
                filters : Vec<bloom_bloomfilter>) -> Self {
@@ -23,27 +26,34 @@ impl bloom_lbf {
         };
     }
 
+    // Minor little hack; we call this so the filter loads in memory before we
+    // call contains or something else on it
     pub fn check(&mut self) {
-        // this is a little hack
+        // Don't actually need to do anything here; calling a function is enough
     }
-
+    
+    // adds a new layer to the lbf
     pub fn add_filter(&mut self, filter : bloom_bloomfilter) {
         self.filters.push(filter);
         self.num_filters += 1;
     }
 
+    // Returns how many keys are in the layer with the given index
     pub fn get_filter_size(&self, index : usize) -> u64 {
         return self.filters[index].size();
     }
 }
 
 impl IBloomFilter<u32> for bloom_lbf {
+    // Adds the given key to the first layer that does not already contain that key.
     fn add(&mut self, key : String) -> Result<u32, ()> {
         let mut index : u32 = 0;
 
+        // Check each filter in the lbf
         for ref mut filter in self.filters.iter_mut() {
             index += 1;
 
+            // If this filter doesn't contain the key, add it and return
             match filter.contains(&key) {
                 Ok(in_filter) => {
                     if !in_filter {
@@ -57,12 +67,15 @@ impl IBloomFilter<u32> for bloom_lbf {
             }
         }
 
+        // Was in every layer of the filter; return 0 to indicate that
         return Ok(0);
     }
 
+    // Returns the last layer that contains the given key
     fn contains(&self, key : &String) -> Result<u32, ()> {
         let mut index : u32 = 0;
         
+        // Check each layer, break when we find one that doesn't contain the key
         for ref filter in self.filters.iter() {
             match filter.contains(key) {
                 Ok(in_filter) => { if !in_filter { break } },
@@ -75,6 +88,7 @@ impl IBloomFilter<u32> for bloom_lbf {
         return Ok(index);
     }
 
+    // Returns the number of keys in the layered bloom filter
     fn size(&self) -> u64 {
         if !self.filters.is_empty() {
             return self.filters[0].size();
@@ -83,9 +97,11 @@ impl IBloomFilter<u32> for bloom_lbf {
         }
     }
 
+    // Saves the layered bloom filter to the disk
     fn flush(&mut self) -> Result<(), ()> {
         let mut result : Result<(), ()> = Ok(());
-
+        
+        // Flush each layer of the filter
         for ref mut filter in self.filters.iter_mut() {
             if filter.flush().is_err() {
                 result = Err(());
@@ -96,6 +112,7 @@ impl IBloomFilter<u32> for bloom_lbf {
     }
 }
 
+// Drop each layer of this filter, when it is dropped
 impl Drop for bloom_lbf {
     fn drop(&mut self) {
         for ref mut filter in self.filters.iter() {
@@ -104,6 +121,9 @@ impl Drop for bloom_lbf {
     }
 }
 
+/* 
+// Our original intention was to allow C to use layered bloom filters.
+// However, due to design changes, that is no longer planned
 #[no_mangle]
 pub extern "C" fn lbf_add(lbf : *mut bloom_lbf, key : &str) -> i32 {
     return unsafe {
@@ -144,6 +164,7 @@ pub extern "C" fn lbf_close(lbf : *mut bloom_lbf) -> i32 {
     unsafe { drop(&mut *lbf) };
     return 1;
 }
+*/
 
 #[cfg(test)]
 mod tests {

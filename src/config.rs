@@ -1,6 +1,7 @@
 use inifile::IniFile;
 use std::str::FromStr;
 
+// The general settings for the bloom server as a whole
 #[derive(Clone)]
 pub struct BloomConfig {
     pub tcp_port              : i32,
@@ -18,6 +19,7 @@ pub struct BloomConfig {
     pub use_mmap              : bool
 }
 
+// constants -------------------------------------------------------------------
 const INI_SECTION_BLOOMD               : &'static str = "bloomd";
 const INI_OPTION_PORT                  : &'static str = "port";
 const INI_OPTION_TCP_PORT              : &'static str = "tcp_port";
@@ -33,8 +35,10 @@ const INI_OPTION_DEFAULT_PROBABILITY   : &'static str = "default_probability";
 const INI_OPTION_PROBABILITY_REDUCTION : &'static str = "probability_reduction";
 const INI_OPTION_DATA_DIR              : &'static str = "data_dir";
 const INI_OPTION_BIND_ADDRESS          : &'static str = "bind_address";
+// -----------------------------------------------------------------------------
 
 impl BloomConfig {
+    // Returns a new BloomConfig containing all the given settings
     pub fn new (tcp_port              : i32,
                 udp_port              : i32,
                 bind_host             : &str,
@@ -65,6 +69,7 @@ impl BloomConfig {
         };
     }
 
+    // Returns the default set of configs used if no config file is specified
     pub fn default() -> Self {
         return BloomConfig::new(
             8673,          // tcp_port
@@ -83,6 +88,7 @@ impl BloomConfig {
         );
     }
 
+    // Pulls the config settings out of an ini file
     pub fn from_filename(filename : &str) -> Self {
         let mut config : BloomConfig = BloomConfig::default();
 
@@ -117,6 +123,7 @@ impl BloomConfig {
         return config;
     }
 
+    // Returns the bind address
     pub fn get_bind_address(&self) -> String {
         return format!("{}:{}", self.bind_host, self.tcp_port);
     }
@@ -124,6 +131,7 @@ impl BloomConfig {
 
 unsafe impl Send for BloomConfig { }
 
+// constants -------------------------------------------------------------------
 const INI_SECTION_CONFIG          : &'static str = "config";
 const INI_OPTION_FILTER_NAME      : &'static str = "filter_name";
 const INI_OPTION_CAPACITY         : &'static str = "capacity";
@@ -133,6 +141,7 @@ const INI_OPTION_BYTES            : &'static str = "bytes";
 const INI_OPTION_SIZE             : &'static str = "size";
 const INI_OPTION_BITMAP_FILENAMES : &'static str = "bitmap_filenames";
 const INI_OPTION_FILTER_SIZES     : &'static str = "filter_sizes";
+// -----------------------------------------------------------------------------
 
 /**
  * This structure is used to persist

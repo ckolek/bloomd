@@ -7,6 +7,7 @@ use std::ops::{Deref, DerefMut};
 use std::io::fs;
 use std::io::fs::PathExtensions;
 
+// constants -------------------------------------------------------------------
 const INI_SECTION_COUNTERS : &'static str = "counters";
 const INI_OPTION_CHECK_HITS : &'static str = "check_hits";
 const INI_OPTION_CHECK_MISSES : &'static str = "check_misses";
@@ -14,7 +15,9 @@ const INI_OPTION_SET_HITS : &'static str = "set_hits";
 const INI_OPTION_SET_MISSES : &'static str = "set_misses";
 const INI_OPTION_PAGE_INS : &'static str = "page_ins";
 const INI_OPTION_PAGE_OUTS : &'static str = "page_outs";
+// -----------------------------------------------------------------------------
 
+// Keeps track of statistics for filters; used by the info command
 pub struct BloomFilterCounters {
     pub check_hits   : u64,
     pub check_misses : u64,
@@ -25,10 +28,12 @@ pub struct BloomFilterCounters {
 }
 
 impl BloomFilterCounters {
+    // Returns a new instance, with all counters set to zero
     pub fn new() -> Self {
         return BloomFilterCounters { check_hits: 0, check_misses: 0, set_hits: 0, set_misses: 0, page_ins: 0, page_outs: 0 };
     }
 
+    // Loads an instance from an ini file, returning an error if the ini file is missing information
     pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
         let check_hits : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_CHECK_HITS) {
@@ -76,14 +81,17 @@ impl BloomFilterCounters {
         });
     } 
 
+    // Returns the aggregate number of checks
     pub fn checks(&self) -> u64 {
         return self.check_hits + self.check_misses;
     }
 
+    // Returns the aggregate number of sets
     pub fn sets(&self) -> u64 {
         return self.set_hits + self.set_misses;
     }
 
+    // Adds the counters in this instance to the given ini file
     pub fn add_to_ini(&self, ini : &mut IniFile) {
         ini.add_section(INI_SECTION_COUNTERS);
         ini.set(INI_SECTION_COUNTERS, INI_OPTION_CHECK_HITS, self.check_hits.to_string());
@@ -95,6 +103,8 @@ impl BloomFilterCounters {
     }
 }
 
+// The structure wrapping around bloom filters, used by bloomd.
+// Keeps the configuration, the filter, and the counters
 pub struct BloomFilter {
     pub config      : BloomFilterConfig,   // Filter-specific config
     lbf             : Option<bloom_lbf>,   // Layered bloom filter
@@ -104,6 +114,7 @@ pub struct BloomFilter {
 }
 
 impl BloomFilter {
+    // Returns a new instance of a BloomFilter
     pub fn new(config : BloomFilterConfig, lbf : bloom_lbf, directory : Path) -> BloomFilter {
         let mut config_file : Path = directory.clone();
         config_file.push(lbf.name.as_slice());
@@ -118,6 +129,8 @@ impl BloomFilter {
         };
     }
 
+    // Reads in a Bloom Filter from a given directory; returns an error if
+    // the ini file is missing or lacks information
     pub fn from_directory(directory : &Path, filter_name : &String) -> Result<Self, ()> {
         if directory.exists() {
             let mut config_file : Path = directory.clone();
@@ -156,6 +169,7 @@ impl BloomFilter {
         return Err(());
     }
 
+    // Handles the creation of a bloom filter on the disk, including the corresponding bitmap
     pub fn add_filter(&mut self, value : u32) {
         let mut path : Path = self.directory.clone();
         path.push(value.to_string());
@@ -170,6 +184,7 @@ impl BloomFilter {
         self.config.filter_sizes.push(0);
     }
 
+    // Flushes the bloom filter back to the disk
     pub fn flush(&mut self) -> Result<(), ()> {
         let mut ini : IniFile = IniFile::new();
         self.config.add_to_ini(&mut ini);
@@ -182,6 +197,7 @@ impl BloomFilter {
         return (**self).flush();
     }
 
+    // Loads a bloom filter from the disk back into the BloomFilter instance
     fn load_filter(&mut self) {
         let params : bloom_filter_params = bloom_filter_params::new(self.config.bytes, self.config.k_num, self.config.capacity, self.config.probability);
 
@@ -197,10 +213,12 @@ impl BloomFilter {
         self.lbf = Some(lbf);
     }
 
+    // Removes the bloom filter from memory
     pub fn unload_filter(&mut self) {
         self.lbf = None;
     }
 
+    // Deletes the bloom filter from the disk
     pub fn delete(&mut self) {
         fs::rmdir_recursive(&self.directory).unwrap();
     }
