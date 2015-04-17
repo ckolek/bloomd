@@ -158,7 +158,7 @@ pub fn create_bloom_filter(params : &bloom_filter_params, bitmap_filename : &str
     let mode : u32 = bitmap_mode::NEW_BITMAP | if in_memory { bitmap_mode::ANONYMOUS } else { bitmap_mode::PERSISTENT };
 
     let map : bloom_bitmap;
-    match bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, mode) {
+    match if in_memory { bloom_bitmap::from_file(0, params.bytes, mode) } else { bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, mode) } {
         Ok(_map) => { map = _map },
         Err(e) => { return Err(e) }
     }

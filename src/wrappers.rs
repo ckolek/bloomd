@@ -194,8 +194,8 @@ impl BloomFilter {
 
         if !self.config.in_memory {
             self.config.bitmap_filenames.push(bitmap_filename);
-            self.config.filter_sizes.push(0);
         }
+        self.config.filter_sizes.push(0);
 
         return Ok(());
     }
