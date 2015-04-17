@@ -176,53 +176,53 @@ impl BloomFilterConfig {
 
     // Pulls the values from an ini file and returns a BloomFilterConfig instance
     // Throws an error if the ini file is missing any values
-    pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
+    pub fn from_ini(ini : &IniFile) -> Result<Self, String> {
         let filter_name : String;
         match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_FILTER_NAME) {
             Some(value) => {
                 if !value.is_empty() {
                     filter_name = value;
                 } else {
-                    return Err(());
+                    return Err(String::from_str("filter_name is empty"));
                 }
             },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:filter_name")) }
         };
 
         let capacity : u64;
         match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_CAPACITY) {
             Some(value) => { capacity = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:capacity")) }
         };
 
         let probability : f64;
         match ini.get::<f64>(INI_SECTION_CONFIG, INI_OPTION_PROBABILITY) {
             Some(value) => { probability = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:probability")) }
         };
 
         let k_num : u32;
         match ini.get::<u32>(INI_SECTION_CONFIG, INI_OPTION_K_NUM) {
             Some(value) => { k_num = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:k_num")) }
         };
 
         let in_memory : bool;
         match ini.get_bool(INI_SECTION_CONFIG, INI_OPTION_IN_MEMORY) {
             Some(value) => { in_memory = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:in_memory")) }
         };
 
         let bytes : u64;
         match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_BYTES) {
             Some(value) => { bytes = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:bytes")) }
         };
 
         let size : u64;
         match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_SIZE) {
             Some(value) => { size = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing config:size")) }
         };
 
         let bitmap_filenames : Vec<String>;

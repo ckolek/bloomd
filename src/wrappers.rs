@@ -34,41 +34,41 @@ impl BloomFilterCounters {
     }
 
     // Loads an instance from an ini file, returning an error if the ini file is missing information
-    pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
+    pub fn from_ini(ini : &IniFile) -> Result<Self, String> {
         let check_hits : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_CHECK_HITS) {
             Some(value) => { check_hits = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:check_hits")) }
         };
 
         let check_misses : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_CHECK_MISSES) {
             Some(value) => { check_misses = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:check_misses")) }
         };
 
         let set_hits : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_SET_HITS) {
             Some(value) => { set_hits = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:set_hits")) }
         };
 
         let set_misses : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_SET_MISSES) {
             Some(value) => { set_misses = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:set_misses")) }
         };
 
         let page_ins : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_PAGE_INS) {
             Some(value) => { page_ins = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:page_ins")) }
         };
 
         let page_outs : u64;
         match ini.get::<u64>(INI_SECTION_COUNTERS, INI_OPTION_PAGE_OUTS) {
             Some(value) => { page_outs = value },
-            None => { return Err(()) }
+            None => { return Err(String::from_str("missing counters:page_outs")) }
         };
 
         return Ok(BloomFilterCounters {
@@ -133,7 +133,7 @@ impl BloomFilter {
 
     // Reads in a Bloom Filter from a given directory; returns an error if
     // the ini file is missing or lacks information
-    pub fn from_directory(directory : &Path, filter_name : &String, load_filter : bool) -> Result<Self, ()> {
+    pub fn from_directory(directory : &Path, filter_name : &String, load_filter : bool) -> Result<Self, String> {
         if directory.exists() {
             let mut config_file : Path = directory.clone();
             config_file.push(filter_name.as_slice());
@@ -144,13 +144,13 @@ impl BloomFilter {
                     let config : BloomFilterConfig;
                     match BloomFilterConfig::from_ini(&ini) {
                         Ok(_config) => { config = _config },
-                        Err(_) => { return Err(()) }
+                        Err(e) => { return Err(e) }
                     };
 
                     let counters : BloomFilterCounters;
                     match BloomFilterCounters::from_ini(&ini) {
                         Ok(_counters) => { counters = _counters },
-                        Err(_) => { return return Err(()) }
+                        Err(e) => { return return Err(e) }
                     };
 
                     let mut bloom_filter : BloomFilter = BloomFilter {
@@ -168,11 +168,11 @@ impl BloomFilter {
 
                     return Ok(bloom_filter);
                 },
-                Err(_) => { Err(()) }
+                Err(e) => { Err(e.to_string()) }
             };
         }
 
-        return Err(());
+        return Err(format!("directory {} does not exist", directory.display()));
     }
 
     // Handles the creation of a bloom filter on the disk, including the corresponding bitmap

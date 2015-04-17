@@ -93,7 +93,7 @@ impl BloomServer {
                         // If it is a valid filter, add it to the filters list
                         match BloomFilter::from_directory(path, &filter_name, false) {
                             Ok(filter) => { filters.insert(filter_name, RwLock::new(filter)); return (); },
-                            Err(_) => { println!("Could not read filter from directory: {}", path.display()) }
+                            Err(e) => { println!("Could not read filter from directory {}: {}", path.display(), e) }
                         };
                     });
                 }
@@ -313,9 +313,12 @@ impl BloomServer {
             let mut directory : Path = Path::new(self.config.data_dir.clone());
             directory.push(format!("{}{}", FILTER_FOLDER_PREFIX, &filter_name).as_slice());
 
-            let bloom_filter : BloomFilter;
+            let mut bloom_filter : BloomFilter;
             if directory.exists() {
-                bloom_filter = BloomFilter::from_directory(&directory, &filter_name, true).unwrap();
+                bloom_filter = match BloomFilter::from_directory(&directory, &filter_name, true) {
+                    Ok(filter) => filter,
+                    Err(e) => panic!("{}", e)
+                };
             } else {
                 fs::mkdir(&directory, io::USER_RWX).unwrap();
 
@@ -324,6 +327,7 @@ impl BloomServer {
                 let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), Vec::new());
 
                 bloom_filter = BloomFilter::new(filter_config, lbf, directory);
+                bloom_filter.flush().unwrap();
             }
 
             filters.insert(filter_name.clone(), RwLock::new(bloom_filter))
