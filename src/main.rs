@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unstable_features)]
 #![feature(unsafe_destructor)]
+#![allow(improper_ctypes)]
 
 use config::{BloomConfig, BloomFilterConfig};
 use filter::IBloomFilter;
