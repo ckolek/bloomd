@@ -110,7 +110,8 @@ pub struct BloomFilter {
     lbf             : Option<bloom_lbf>,   // Layered bloom filter
     pub counters    : BloomFilterCounters, // Counters
     pub directory   : Path,                // File directory path,
-    pub config_file : Path                 // INI file path 
+    pub config_file : Path,                // INI file path
+    pub cold_index  : u64                  // Used to determine how recently filter was used
 }
 
 impl BloomFilter {
@@ -125,7 +126,8 @@ impl BloomFilter {
             lbf         : Some(lbf),
             counters    : BloomFilterCounters::new(),
             directory   : directory,
-            config_file : config_file
+            config_file : config_file,
+            cold_index  : 0
         };
     }
 
@@ -156,7 +158,8 @@ impl BloomFilter {
                         lbf: None,
                         counters: counters,
                         directory: directory.clone(),
-                        config_file: config_file
+                        config_file: config_file,
+                        cold_index: 0
                     };
                     bloom_filter.load_filter();
 
@@ -216,6 +219,12 @@ impl BloomFilter {
     // Removes the bloom filter from memory
     pub fn unload_filter(&mut self) {
         self.lbf = None;
+    }
+
+    // Updates the heat index for this filter
+    pub fn touch(&mut self) {
+        self.cold_index = 0;
+        (**self).touch();
     }
 
     // Deletes the bloom filter from the disk

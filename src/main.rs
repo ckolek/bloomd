@@ -579,7 +579,7 @@ impl BloomServer {
 
     // do a check for the given key in the given BloomFilter and return the corresponding value
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
-        filter.check();
+        filter.touch();
 
         let value : u32 = filter.contains(&key).unwrap();
 
@@ -594,7 +594,7 @@ impl BloomServer {
 
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
-        filter.check();
+        filter.touch();
 
         // Check and make sure that there is a layer that doesn't contain the key,
         // creating a new layer if necessary
@@ -685,6 +685,12 @@ impl FnMut<(u64,), ()> for FlushTask {
         let (time,) = args;
 
         if (time - self.last_flush) > self.server.config.flush_interval as u64 {
+            self.server.use_filters_mut(|filters| {
+                for filter in filters.values() {
+                    (*filter.write().unwrap()).flush().unwrap();
+                }
+            });
+
             self.last_flush = time;
         }
     }
@@ -693,28 +699,34 @@ impl FnMut<(u64,), ()> for FlushTask {
 unsafe impl Send for FlushTask { }
 
 // task for clearing cold filters
-struct ClearTask {
-    server : Arc<BloomServer>,
-    last_clear : u64
+struct CloseTask {
+    server : Arc<BloomServer>
 }
 
-impl ClearTask {
+impl CloseTask {
     fn new(server : Arc<BloomServer>) -> Self {
-        return ClearTask { server: server, last_clear: 0 };
+        return CloseTask { server: server };
     }
 }
 
-impl FnMut<(u64,), ()> for ClearTask {
+impl FnMut<(u64,), ()> for CloseTask {
+    #[allow(unused_variables)]
     extern "rust-call" fn call_mut(&mut self, args : (u64,)) {
-        let (time,) = args;
+        self.server.use_filters_mut(|filters| {
+            for filter_lock in filters.values() {
+                let mut guard = filter_lock.write().unwrap();
 
-        if (time - self.last_clear) > self.server.config.cold_interval as u64 {
-            self.last_clear = time;
-        }
+                if (*guard).cold_index > self.server.config.cold_interval as u64 {
+                    (*guard).unload_filter();
+                }
+
+                (*guard).cold_index += 1;
+            }
+        });
     }
 }
 
-unsafe impl Send for ClearTask { }
+unsafe impl Send for CloseTask { }
 
 fn main() {
     // get command line arguments
@@ -777,7 +789,7 @@ fn start(server: BloomServer) {
 
     // setup background tasks
     let flush_task : FlushTask = FlushTask::new(server.clone());
-    let clear_task : ClearTask = ClearTask::new(server.clone());
+    let close_task : CloseTask = CloseTask::new(server.clone());
 
     let duration : Duration = Duration::minutes(1);
 
@@ -785,7 +797,7 @@ fn start(server: BloomServer) {
     if server.config.worker_threads <= 1 {
         let mut worker : Worker = Worker::new(duration);
         worker.add_task(flush_task);
-        worker.add_task(clear_task);
+        worker.add_task(close_task);
 
         Thread::spawn(worker);
     } else {
@@ -793,7 +805,7 @@ fn start(server: BloomServer) {
         worker1.add_task(flush_task);
 
         let mut worker2 : Worker = Worker::new(duration);
-        worker2.add_task(clear_task);
+        worker2.add_task(close_task);
 
         Thread::spawn(worker1);
         Thread::spawn(worker2);
