@@ -117,7 +117,7 @@ impl BloomFilter {
         };
     }
 
-    pub fn from_directory(directory : Path, filter_name : &String) -> Result<Self, ()> {
+    pub fn from_directory(directory : &Path, filter_name : &String) -> Result<Self, ()> {
         if directory.exists() {
             let mut config_file : Path = directory.clone();
             config_file.push(filter_name.as_slice());
@@ -141,7 +141,7 @@ impl BloomFilter {
                         config: config,
                         lbf: None,
                         counters: counters,
-                        directory: directory,
+                        directory: directory.clone(),
                         config_file: config_file
                     };
                     bloom_filter.load_filter();

@@ -28,6 +28,8 @@ mod lbf;
 mod wrappers;
 
 // constants -------------------------------------------------------------------
+const FILTER_FOLDER_PREFIX    : &'static str = "filter.";
+
 const MESSAGE_START           : &'static str = "START\r\n";
 const MESSAGE_END             : &'static str = "END";
 const MESSAGE_DONE            : &'static str = "Done";
@@ -37,6 +39,7 @@ const MESSAGE_YES             : &'static str = "Yes";
 const MESSAGE_NO              : &'static str = "No";
 const MESSAGE_NOT_IMPLEMENTED : &'static str = "Client Error: Command not supported";
 const MESSAGE_BAD_ARGS        : &'static str = "Client Error: Bad arguments";
+
 const COMMAND_BULK_AB         : &'static str = "b";
 const COMMAND_BULK            : &'static str = "bulk";
 const COMMAND_CHECK_AB        : &'static str = "c";
@@ -63,25 +66,28 @@ struct BloomServer {
 impl BloomServer {
     // create a new BloomServer with the given configuration, reading in pre-existing filters
     fn new(config : BloomConfig) -> Self {
-        let server : BloomServer = BloomServer { config: config, filters: RwLock::new(HashMap::new()) };
-        server.read_in_filters();
-        return server;
+        return BloomServer { config: config, filters: RwLock::new(HashMap::new()) };
     }
-    
+
+    // read existing filters from disk
     fn read_in_filters(&self) {
         let paths = fs::readdir(&Path::new(self.config.data_dir.clone())).unwrap();
-        
+
         for path in paths.iter() {
-            if path.is_dir() && path.filename().unwrap().starts_with("filter.".as_bytes()) {
-                let filter_paths = fs::readdir(path).unwrap();
-                
-                for file_path in filter_paths.iter() {
-                    // Needs something more here
-                    
-                    println!("{}", file_path.display());
+            if path.is_dir() {
+                let mut components = path.str_components().collect::<Vec<Option<&str>>>();
+                let last_component = components.pop().unwrap().unwrap();
+
+                if last_component.starts_with(FILTER_FOLDER_PREFIX) {
+                    self.use_filters_mut(|filters| {
+                        let filter_name : String = String::from_str(&last_component[FILTER_FOLDER_PREFIX.len()..]);
+
+                        match BloomFilter::from_directory(path, &filter_name) {
+                            Ok(filter) => { filters.insert(filter_name, RwLock::new(filter)); return (); },
+                            Err(_) => { println!("Could not read filter from directory: {}", path.display()) }
+                        };
+                    });
                 }
-                
-                println!("{}", path.display());
             }
         }
     }
@@ -300,7 +306,7 @@ impl BloomServer {
 
             let bloom_filter : BloomFilter;
             if directory.exists() {
-                bloom_filter = BloomFilter::from_directory(directory, &filter_name).unwrap();
+                bloom_filter = BloomFilter::from_directory(&directory, &filter_name).unwrap();
             } else {
                 fs::mkdir(&directory, io::USER_RWX).unwrap();
 
@@ -649,7 +655,7 @@ fn start(server: BloomServer) {
     } else if !data_dir.is_dir() {
         panic!("Invalid data_dir: {} is not a directory", data_dir.as_str().unwrap());
     } else {
-        
+        server.read_in_filters();
     }
 
     // listen at <bind_host>:<tcp_port>
