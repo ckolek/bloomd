@@ -160,6 +160,7 @@ pub struct BloomFilterConfig {
 }
 
 impl BloomFilterConfig {
+    // returns a new BloomFilterConfig instance with the given values
     pub fn new(filter_name : String, capacity : u64, probability : f64, k_num : u32, in_memory : bool, bytes : u64) -> Self {
         return BloomFilterConfig {
             filter_name: filter_name,
@@ -173,6 +174,8 @@ impl BloomFilterConfig {
             filter_sizes: Vec::new() };
     }
 
+    // Pulls the values from an ini file and returns a BloomFilterConfig instance
+    // Throws an error if the ini file is missing any values
     pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
         let filter_name : String;
         match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_FILTER_NAME) {
