@@ -238,7 +238,6 @@ mod externals {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::{bloom_bloomfilter, bloom_filter_params, create_bloom_filter};
