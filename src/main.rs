@@ -174,10 +174,9 @@ impl BloomServer {
         return user(&mut *self.filters.write().unwrap());
     }
 
-    // determines if there is a filter with the given name in the filter HashMap, or a directory in the data directory
+    // determines if there is a filter with the given name in the filter HashMap
     fn contains_filter_named(&self, filter_name : &String) -> bool {
-        return self.use_filters(|filters| { filters.contains_key(filter_name) }) ||
-            Path::new(format!("{}/{}{}", self.config.data_dir, FILTER_FOLDER_PREFIX, filter_name).as_slice()).exists();
+        return self.use_filters(|filters| { filters.contains_key(filter_name) });
     }
 
     // obtains a read lock on the filter with the given name and passes the references to the given function
