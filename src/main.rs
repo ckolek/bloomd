@@ -29,6 +29,7 @@ mod config;
 mod filter;
 mod inifile;
 mod lbf;
+mod util;
 mod wrappers;
 
 // constants -------------------------------------------------------------------
@@ -315,18 +316,30 @@ impl BloomServer {
 
             let mut bloom_filter : BloomFilter;
             if directory.exists() {
+                // load filter from directory if it exists
                 bloom_filter = match BloomFilter::from_directory(&directory, &filter_name, true) {
                     Ok(filter) => filter,
                     Err(e) => panic!("{}", e)
                 };
-            } else {
-                fs::mkdir(&directory, io::USER_RWX).unwrap();
 
-                let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
+                // if in_memory, delete filter from disk
+                if in_memory {
+                    bloom_filter.config.in_memory = true;
+                    bloom_filter.delete().unwrap();
+                }
+            } else {
+                // create new filter if directory does not exist
+                let params : bloom_filter_params;
+                match create_bloom_filter_params(capacity, probability) {
+                    Ok(_params) => { params = _params },
+                    Err(e) => { panic!("{}", e) }
+                };
+
                 let filter_config : BloomFilterConfig = BloomFilterConfig::new(filter_name.clone(), capacity, probability, params.k_num, in_memory, params.bytes);
                 let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), Vec::new());
 
                 bloom_filter = BloomFilter::new(filter_config, lbf, directory);
+                bloom_filter.init().unwrap();
                 bloom_filter.flush().unwrap();
             }
 
@@ -403,7 +416,7 @@ impl BloomServer {
         // remove the filter
         self.use_filters_mut(|filters| {
             let filter : Option<RwLock<BloomFilter>> = filters.remove(&filter_name);
-            filter.unwrap().write().unwrap().delete();
+            filter.unwrap().write().unwrap().delete().unwrap();
         });
 
         return String::from_str(MESSAGE_DONE);
@@ -604,7 +617,10 @@ impl BloomServer {
         // creating a new layer if necessary
         let value : u32 = filter.contains(&key).unwrap();
         if value == filter.num_filters {
-            filter.add_filter(value);
+            match filter.add_filter(value) {
+                Err(e) => { println!("Could not add new filter: {}", e) },
+                Ok(_) => { }
+            }
         }
         
         // Increment the counters for the filter
@@ -616,10 +632,12 @@ impl BloomServer {
 
         // Add the key to the filter, and increment the size of the filter
         let value = filter.add(key).unwrap();
-        let index : usize = (value - 1) as usize;
-
         filter.config.size = filter.size();
-        filter.config.filter_sizes[index] = filter.get_filter_size(index);
+
+        if value > 0 {
+            let index : usize = (value - 1) as usize;
+            filter.config.filter_sizes[index] = filter.get_filter_size(index);
+        }
 
         return value;
     }

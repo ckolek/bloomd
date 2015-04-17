@@ -1,6 +1,7 @@
 
 extern crate libc;
 
+use util;
 use std::{ffi};
 use std::ops::{BitAnd, BitOr, BitXor};
 
@@ -53,33 +54,39 @@ impl bloom_bitmap {
     }
 
     // Returns the bitmap from an opened file
-    pub fn from_file(fileno : i32, len : u64, mode : u32) -> Result<Self, ()> {
+    pub fn from_file(fileno : i32, len : u64, mode : u32) -> Result<Self, String> {
         let mut map : bloom_bitmap = bloom_bitmap::new(mode, fileno, len);
 
-        if unsafe { externals::bitmap_from_file(fileno, len, mode, &mut map as *mut bloom_bitmap) } < 0 {
-            return Err(());
+        let value : i32 = unsafe { externals::bitmap_from_file(fileno, len, mode, &mut map as *mut bloom_bitmap) };
+
+        if value < 0 {
+            return util::strerror(value);
         }
 
         return Ok(map);
     }
 
     // Opens the file with the name given and loads the bitmap in it
-    pub fn from_filename(filename : &str, len : u64, create : bool, mode : u32) -> Result<Self, ()> {
+    pub fn from_filename(filename : &str, len : u64, create : bool, mode : u32) -> Result<Self, String> {
         let mut map : bloom_bitmap  = bloom_bitmap::new(mode, 0, len);
 
         let filename : ffi::CString = ffi::CString::from_slice(filename.as_bytes());
 
-        if unsafe { externals::bitmap_from_filename(filename.as_ptr(), len, create as i32, mode, &mut map as *mut bloom_bitmap) } < 0 {
-            return Err(());
+        let value : i32 = unsafe { externals::bitmap_from_filename(filename.as_ptr(), len, create as i32, mode, &mut map as *mut bloom_bitmap) };
+
+        if value < 0 {
+            return util::strerror(value);
         }
 
         return Ok(map);
     }
     
     // Flushes the changes to the bitmap to the disk
-    pub fn flush(&mut self) -> Result<(), ()> {
-        if unsafe { externals::bitmap_flush(self as *mut bloom_bitmap) } < 0 {
-            return Err(());
+    pub fn flush(&mut self) -> Result<(), String> {
+        let value : i32 = unsafe { externals::bitmap_flush(self as *mut bloom_bitmap) };
+
+        if value < 0 {
+            return util::strerror(value);
         }
 
         return Ok(());

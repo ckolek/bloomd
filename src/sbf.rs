@@ -6,6 +6,7 @@ use std::{mem, ffi, ptr};
 use bitmap::bloom_bitmap;
 use bloom::bloom_bloomfilter;
 use filter::IBloomFilter;
+use util;
 
 #[repr(C, packed)]
 pub struct bloom_sbf_params {
@@ -68,7 +69,7 @@ impl bloom_sbf {
     pub fn from_filters_with_callback(params         : bloom_sbf_params,
                                       callback       : bloom_sbf_callback,
                                       callback_input : *mut c_void,
-                                      filters        : Vec<bloom_bloomfilter>) -> Self {
+                                      filters        : Vec<bloom_bloomfilter>) -> Result<Self, String> {
         let mut dirty_filters : Vec<u8> = Vec::new();
         let mut capacities : Vec<u64> = Vec::new();
 
@@ -79,14 +80,16 @@ impl bloom_sbf {
 
         let mut sbf : bloom_sbf = bloom_sbf::with_callback(params, callback, callback_input, filters.len() as u32, filters, dirty_filters, capacities);
 
-        unsafe {
-            externals::sbf_from_filters(&mut sbf.params as *mut bloom_sbf_params, callback, callback_input, sbf.num_filters, sbf.filters.as_mut_slice() as *mut [bloom_bloomfilter], &mut sbf as *mut bloom_sbf)
-        };
+        let value : i32 = unsafe { externals::sbf_from_filters(&mut sbf.params as *mut bloom_sbf_params, callback, callback_input, sbf.num_filters, sbf.filters.as_mut_slice() as *mut [bloom_bloomfilter], &mut sbf as *mut bloom_sbf) };
+
+        if value < 0 {
+            return util::strerror(value);
+        }
         
-        return sbf;
+        return Ok(sbf);
     }
 
-    pub fn from_filters(params : bloom_sbf_params, filters : Vec<bloom_bloomfilter>) -> Self {
+    pub fn from_filters(params : bloom_sbf_params, filters : Vec<bloom_bloomfilter>) -> Result<Self, String> {
         return bloom_sbf::from_filters_with_callback(params, default_callback, ptr::null_mut(), filters);
     }
 
@@ -100,39 +103,42 @@ impl bloom_sbf {
 }
 
 impl IBloomFilter<bool> for bloom_sbf {   
-    fn add(&mut self, key : String) -> Result<bool, ()> {
+    fn add(&mut self, key : String) -> Result<bool, String> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
         let result : i32 = unsafe { externals::sbf_add(self as *mut bloom_sbf, key.as_ptr()) };
 
         if result < 0 {
-            return Err(());
-        } else {
-            return Ok(result > 0);
+            return util::strerror(result);
         }
+
+        return Ok(result > 0);
     }
 
-    fn contains(&self, key : &String) -> Result<bool, ()> {
+    fn contains(&self, key : &String) -> Result<bool, String> {
         let key : ffi::CString = ffi::CString::from_slice(key.as_slice().as_bytes());
 
         let result : i32 = unsafe { externals::sbf_contains(self as *const bloom_sbf, key.as_ptr()) };
+
         if result < 0 {
-            return Err(());
-        } else {
-            return Ok(result > 0);
+            return util::strerror(result);
         }
+
+        return Ok(result > 0);
     }
 
     fn size(&self) -> u64 { 
         return unsafe { externals::sbf_size(self as *const bloom_sbf) };
     }
 
-    fn flush(&mut self) -> Result<(), ()> {
-        if unsafe { externals::sbf_flush(self as *mut bloom_sbf) } < 0 {
-            return Err(());
-        } else {
-            return Ok(());
+    fn flush(&mut self) -> Result<(), String> {
+        let value : u32 = unsafe { externals::sbf_flush(self as *mut bloom_sbf) };
+
+        if value < 0 {
+            return util::strerror(value);
         }
+
+        return Ok(());
     }
 }
 

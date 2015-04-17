@@ -1,10 +1,10 @@
 
 // A trait representing the methods common to all bloom filters
 pub trait IBloomFilter<T> {
-    fn add(&mut self, key : String) -> Result<T, ()>;
-    fn contains(&self, key : &String) -> Result<T, ()>;
+    fn add(&mut self, key : String) -> Result<T, String>;
+    fn contains(&self, key : &String) -> Result<T, String>;
     fn size(&self) -> u64;
-    fn flush(&mut self) -> Result<(), ()>;
+    fn flush(&mut self) -> Result<(), String>;
 }
 
 pub mod test {
@@ -16,7 +16,7 @@ pub mod test {
     static FILTER_FP_PROBABILITY : f64 = 0.001;
     
     pub fn create_bloom_filter_params() -> bloom_filter_params {
-        return bloom::create_bloom_filter_params(FILTER_CAPACITY, FILTER_FP_PROBABILITY);
+        return bloom::create_bloom_filter_params(FILTER_CAPACITY, FILTER_FP_PROBABILITY).unwrap();
     }
 
     pub fn test_filter<T : Eq>(mut filter : Box<IBloomFilter<T>>, add_values : &[[T; 3]], contains_values : &[[T; 3]]) {

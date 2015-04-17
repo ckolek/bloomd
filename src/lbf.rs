@@ -46,7 +46,7 @@ impl bloom_lbf {
 
 impl IBloomFilter<u32> for bloom_lbf {
     // Adds the given key to the first layer that does not already contain that key.
-    fn add(&mut self, key : String) -> Result<u32, ()> {
+    fn add(&mut self, key : String) -> Result<u32, String> {
         let mut index : u32 = 0;
 
         // Check each filter in the lbf
@@ -59,11 +59,11 @@ impl IBloomFilter<u32> for bloom_lbf {
                     if !in_filter {
                         return match filter.add(key) {
                             Ok(_) => Ok(index),
-                            Err(_) => Err(())
+                            Err(e) => Err(e)
                         }
                     }
                 },
-                Err(_) => return Err(())
+                Err(e) => return Err(e)
             }
         }
 
@@ -72,14 +72,14 @@ impl IBloomFilter<u32> for bloom_lbf {
     }
 
     // Returns the last layer that contains the given key
-    fn contains(&self, key : &String) -> Result<u32, ()> {
+    fn contains(&self, key : &String) -> Result<u32, String> {
         let mut index : u32 = 0;
         
         // Check each layer, break when we find one that doesn't contain the key
         for ref filter in self.filters.iter() {
             match filter.contains(key) {
                 Ok(in_filter) => { if !in_filter { break } },
-                Err(_) => return Err(())
+                Err(e) => return Err(e)
             }
 
             index += 1;
@@ -98,13 +98,14 @@ impl IBloomFilter<u32> for bloom_lbf {
     }
 
     // Saves the layered bloom filter to the disk
-    fn flush(&mut self) -> Result<(), ()> {
-        let mut result : Result<(), ()> = Ok(());
+    fn flush(&mut self) -> Result<(), String> {
+        let mut result : Result<(), String> = Ok(());
         
         // Flush each layer of the filter
         for ref mut filter in self.filters.iter_mut() {
-            if filter.flush().is_err() {
-                result = Err(());
+            match filter.flush() {
+                Err(e) => { result = Err(e) },
+                Ok(_) => { }
             }
         }
 

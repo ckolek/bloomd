@@ -4,7 +4,8 @@ use filter::IBloomFilter;
 use bloom::{bloom_filter_params, bloom_bloomfilter, create_bloom_filter, load_bloom_filter};
 use lbf::bloom_lbf;
 use std::ops::{Deref, DerefMut};
-use std::io::fs;
+use std::io;
+use std::io::{fs, IoResult};
 use std::io::fs::PathExtensions;
 
 // constants -------------------------------------------------------------------
@@ -176,29 +177,40 @@ impl BloomFilter {
     }
 
     // Handles the creation of a bloom filter on the disk, including the corresponding bitmap
-    pub fn add_filter(&mut self, value : u32) {
+    pub fn add_filter(&mut self, value : u32) -> Result<(), String> {
         let mut path : Path = self.directory.clone();
         path.push(value.to_string());
         path.set_extension("bmp");
 
         let bitmap_filename : String = String::from_str(path.as_str().unwrap());
 
-        let bloom_filter : bloom_bloomfilter = create_bloom_filter(&(**self).params, bitmap_filename.as_slice());
+        let bloom_filter : bloom_bloomfilter;
+        match create_bloom_filter(&(**self).params, bitmap_filename.as_slice(), self.config.in_memory) {
+            Ok(_bloom_filter) => { bloom_filter = _bloom_filter },
+            Err(e) => { return Err(e) }
+        }
 
         (**self).add_filter(bloom_filter);
-        self.config.bitmap_filenames.push(bitmap_filename);
-        self.config.filter_sizes.push(0);
+
+        if !self.config.in_memory {
+            self.config.bitmap_filenames.push(bitmap_filename);
+            self.config.filter_sizes.push(0);
+        }
+
+        return Ok(());
     }
 
     // Flushes the bloom filter back to the disk
-    pub fn flush(&mut self) -> Result<(), ()> {
-        let mut ini : IniFile = IniFile::new();
-        self.config.add_to_ini(&mut ini);
-        self.counters.add_to_ini(&mut ini);
+    pub fn flush(&mut self) -> Result<(), String> {
+        if !self.config.in_memory {
+            let mut ini : IniFile = IniFile::new();
+            self.config.add_to_ini(&mut ini);
+            self.counters.add_to_ini(&mut ini);
 
-        if ini.write_to_path(&self.config_file).is_err() {
-            println!("Could not write to config file: {}", self.config_file.as_str().unwrap());
-        } 
+            if ini.write_to_path(&self.config_file).is_err() {
+                println!("Could not write to config file: {}", self.config_file.as_str().unwrap());
+            } 
+        }
 
         return (**self).flush();
     }
@@ -211,7 +223,10 @@ impl BloomFilter {
         for bitmap_filename in self.config.bitmap_filenames.iter() {
             let index : usize = filters.len();
 
-            filters.push(load_bloom_filter(&params, self.config.filter_sizes[index], bitmap_filename.as_slice()));
+            match load_bloom_filter(&params, self.config.filter_sizes[index], bitmap_filename.as_slice(), self.config.in_memory) {
+                Ok(filter) => { filters.push(filter) },
+                Err(e) => { println!("Could not load filter {} ({}): {}", index, bitmap_filename, e) }
+            }
         }
 
         let lbf : bloom_lbf = bloom_lbf::new(params, self.config.filter_name.clone(), filters);
@@ -224,15 +239,28 @@ impl BloomFilter {
         self.lbf = None;
     }
 
-    // Updates the heat index for this filter
+    // Resets the cold index for this filter
     pub fn touch(&mut self) {
         self.cold_index = 0;
         (**self).touch();
     }
 
+    // Initializes the bloom filter on disk
+    pub fn init(&self) -> IoResult<()>{
+        if !self.config.in_memory {
+            fs::mkdir(&self.directory, io::USER_RWX).unwrap();
+        }
+
+        return Ok(());
+    }
+
     // Deletes the bloom filter from the disk
-    pub fn delete(&mut self) {
-        fs::rmdir_recursive(&self.directory).unwrap();
+    pub fn delete(&mut self) -> IoResult<()> {
+        if self.directory.exists() {
+            return fs::rmdir_recursive(&self.directory);
+        }
+
+        return Ok(());
     }
 }
 
