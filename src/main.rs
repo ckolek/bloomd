@@ -28,6 +28,8 @@ mod lbf;
 mod wrappers;
 
 // constants -------------------------------------------------------------------
+const USAGE                   : &'static str = "bloomd [-f config_file]";
+
 const FILTER_FOLDER_PREFIX    : &'static str = "filter.";
 
 const MESSAGE_START           : &'static str = "START\r\n";
@@ -628,10 +630,10 @@ fn main() {
                     "-f" => {
                         match args.next() {
                             Some(value) => config_filename = Some(value.as_slice()),
-                            None => panic!("missing value for flag \"-f\"")
+                            None => panic!("missing value for flag \"-f\"\r\n\r\n{}", USAGE)
                         }
                     },
-                    _ => panic!("invalid argument: {}", arg)
+                    _ => panic!("invalid argument: {}\r\n\r\n{}", arg, USAGE)
                 };
             },
             None => { break }
