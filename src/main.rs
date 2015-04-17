@@ -3,6 +3,7 @@
 #![allow(unstable_features)]
 #![feature(unsafe_destructor)]
 #![allow(improper_ctypes)]
+#![feature(unboxed_closures)]
 
 use config::{BloomConfig, BloomFilterConfig};
 use filter::IBloomFilter;
@@ -13,9 +14,12 @@ use std::os;
 use std::io;
 use std::io::{fs, TcpListener, Listener, Acceptor, Stream, BufferedStream};
 use std::io::fs::PathExtensions;
+use std::io::timer::Timer;
+use std::time::Duration;
 use std::path::Path;
 use std::thread::Thread;
 use std::sync::{Arc, RwLock};
+use std::sync::mpsc::Receiver;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -613,6 +617,96 @@ impl BloomServer {
 
 unsafe impl Send for BloomServer { }
 
+struct Worker {
+    timer    : Timer,
+    receiver : Receiver<()>,
+    tasks    : Vec<Box<FnMut<(u64,), ()> + 'static>>
+}
+
+impl Worker {
+    fn new() -> Self {
+        let mut timer : Timer = Timer::new().unwrap();
+        let receiver : Receiver<()> = timer.periodic(Duration::minutes(1));
+
+        return Worker {
+            timer: timer,
+            receiver: receiver,
+            tasks: Vec::new()
+        };
+    }
+
+    fn add_task<T : FnMut<(u64,), ()> + 'static>(&mut self, task : T) {
+        self.tasks.push(Box::new(task));
+    }
+}
+
+impl FnMut<(), ()> for Worker {
+    #[allow(unused_variables)]
+    extern "rust-call" fn call_mut(&mut self, args : ()) {
+        let mut count : u64 = 0;
+
+        loop {
+            // activate the tasks
+            for task in self.tasks.iter_mut() {
+                task(count,);
+            }
+
+            count += 1;
+
+            // sleep for the rest of the minute
+            self.receiver.recv().unwrap();
+        }
+    }
+}
+
+unsafe impl Send for Worker { }
+
+struct FlushTask {
+    server     : Arc<BloomServer>,
+    last_flush : u64
+}
+
+impl FlushTask {
+    fn new(server : Arc<BloomServer>) -> Self {
+        return FlushTask { server: server, last_flush: 0 };
+    }
+}
+
+impl FnMut<(u64,), ()> for FlushTask {
+    extern "rust-call" fn call_mut(&mut self, args : (u64,)) {
+        let (time,) = args;
+
+        if (time - self.last_flush) > self.server.config.flush_interval as u64 {
+            self.last_flush = time;
+        }
+    }
+}
+
+unsafe impl Send for FlushTask { }
+
+struct ClearTask {
+    server : Arc<BloomServer>,
+    last_clear : u64
+}
+
+impl ClearTask {
+    fn new(server : Arc<BloomServer>) -> Self {
+        return ClearTask { server: server, last_clear: 0 };
+    }
+}
+
+impl FnMut<(u64,), ()> for ClearTask {
+    extern "rust-call" fn call_mut(&mut self, args : (u64,)) {
+        let (time,) = args;
+
+        if (time - self.last_clear) > self.server.config.cold_interval as u64 {
+            self.last_clear = time;
+        }
+    }
+}
+
+unsafe impl Send for ClearTask { }
+
 fn main() {
     // get command line arguments
     let args = os::args();
@@ -671,6 +765,28 @@ fn start(server: BloomServer) {
 
     // share state
     let server : Arc<BloomServer> = Arc::new(server);
+
+    // setup background tasks
+    let flush_task : FlushTask = FlushTask::new(server.clone());
+    let clear_task : ClearTask = ClearTask::new(server.clone());
+
+    // create worker threads
+    if server.config.worker_threads <= 1 {
+        let mut worker : Worker = Worker::new();
+        worker.add_task(flush_task);
+        worker.add_task(clear_task);
+
+        Thread::spawn(worker);
+    } else {
+        let mut worker1 : Worker = Worker::new();
+        worker1.add_task(flush_task);
+
+        let mut worker2 : Worker = Worker::new();
+        worker2.add_task(clear_task);
+
+        Thread::spawn(worker1);
+        Thread::spawn(worker2);
+    }
 
     // handle connection
     for stream in acceptor.incoming() {
