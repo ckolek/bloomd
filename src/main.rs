@@ -61,9 +61,29 @@ struct BloomServer {
 }
 
 impl BloomServer {
-    // create a new BloomServer with the given configuration
+    // create a new BloomServer with the given configuration, reading in pre-existing filters
     fn new(config : BloomConfig) -> Self {
-        return BloomServer { config: config, filters: RwLock::new(HashMap::new()) };
+        let server : BloomServer = BloomServer { config: config, filters: RwLock::new(HashMap::new()) };
+        server.read_in_filters();
+        return server;
+    }
+    
+    fn read_in_filters(&self) {
+        let paths = fs::readdir(&Path::new(self.config.data_dir.clone())).unwrap();
+        
+        for path in paths.iter() {
+            if path.is_dir() && path.filename().unwrap().starts_with("filter.".as_bytes()) {
+                let filter_paths = fs::readdir(path).unwrap();
+                
+                for file_path in filter_paths.iter() {
+                    // Needs something more here
+                    
+                    println!("{}", file_path.display());
+                }
+                
+                println!("{}", path.display());
+            }
+        }
     }
     
     // handle a client connection
@@ -506,7 +526,6 @@ impl BloomServer {
     }
 
     // do a check for the given key in the given BloomFilter and return the corresponding value
-    // returns a response String
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
         let ref lbf : bloom_lbf = filter.lbf;
         let value : u32 = lbf.contains(&key).unwrap();
@@ -521,7 +540,6 @@ impl BloomServer {
     }
 
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
-    // returns a response String
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
         let value : u32 = filter.contains(&key).unwrap();
 
