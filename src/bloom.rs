@@ -208,7 +208,6 @@ mod externals {
 
     pub const MAGIC_HEADER : c_uint = 0xCB1005DD;
 
-    // Importing methods related to bloom filters from C
     #[link(name = "bloom")]
     #[link(name = "spooky")]
     #[link(name = "murmur")]

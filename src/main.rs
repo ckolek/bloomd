@@ -75,15 +75,18 @@ impl BloomServer {
     fn read_in_filters(&self) {
         let paths = fs::readdir(&Path::new(self.config.data_dir.clone())).unwrap();
 
+        // Check each directory in the data directory
         for path in paths.iter() {
             if path.is_dir() {
                 let mut components = path.str_components().collect::<Vec<Option<&str>>>();
                 let last_component = components.pop().unwrap().unwrap();
-
+                
+                // If it is a bloom filter, it should start with the prefix 'filter.' followed by the filter name
                 if last_component.starts_with(FILTER_FOLDER_PREFIX) {
                     self.use_filters_mut(|filters| {
                         let filter_name : String = String::from_str(&last_component[FILTER_FOLDER_PREFIX.len()..]);
-
+                        
+                        // If it is a valid filter, add it to the filters list
                         match BloomFilter::from_directory(path, &filter_name) {
                             Ok(filter) => { filters.insert(filter_name, RwLock::new(filter)); return (); },
                             Err(_) => { println!("Could not read filter from directory: {}", path.display()) }
@@ -589,18 +592,21 @@ impl BloomServer {
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
         filter.check();
 
+        // Check and make sure that there is a layer that doesn't contain the key,
+        // creating a new layer if necessary
         let value : u32 = filter.contains(&key).unwrap();
-
         if value == filter.num_filters {
             filter.add_filter(value);
         }
-
+        
+        // Increment the counters for the filter
         if value > 0 {
             filter.counters.set_hits += 1;
         } else {
             filter.counters.set_misses += 1;
         }
 
+        // Add the key to the filter, and increment the size of the filter
         let value = filter.add(key).unwrap();
         let index : usize = (value - 1) as usize;
 
