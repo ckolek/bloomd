@@ -30,9 +30,9 @@ pub struct bloom_bloomfilter {
 }
 
 impl bloom_bloomfilter {
-    pub fn new(map : bloom_bitmap, k_num : u32, new_filter : bool) -> Self {
+    pub fn new(k_num : u32, count : u64, map : bloom_bitmap, new_filter : bool) -> Self {
         let mut filter : bloom_bloomfilter = bloom_bloomfilter {
-            header: Box::new(bloom_filter_header::new(0, k_num, 0)),
+            header: Box::new(bloom_filter_header::new(if new_filter { 0 } else { externals::MAGIC_HEADER }, k_num, count)),
             map: Box::new(map),
             offset: 0,
             bitmap_size: 0
@@ -129,9 +129,15 @@ pub fn create_bloom_filter_params(capacity : u64, probability : f64) -> bloom_fi
 }
 
 pub fn create_bloom_filter(params : &bloom_filter_params, bitmap_filename : &str) -> bloom_bloomfilter {
-    let  map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
+    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, true, bitmap_mode::NEW_BITMAP).unwrap();
 
-    return bloom_bloomfilter::new(map, params.k_num, true);
+    return bloom_bloomfilter::new(params.k_num, 0, map, true);
+}
+
+pub fn load_bloom_filter(params : &bloom_filter_params, count : u64, bitmap_filename : &str) -> bloom_bloomfilter {
+    let map : bloom_bitmap = bloom_bitmap::from_filename(bitmap_filename, params.bytes, false, bitmap_mode::PERSISTENT).unwrap();
+
+    return bloom_bloomfilter::new(params.k_num, count, map, false);
 }
 
 pub fn params_for_capacity(params : &mut bloom_filter_params) -> Result<(), ()> {
@@ -178,6 +184,8 @@ mod externals {
     use super::libc::{c_char, c_int, c_uint, c_ulong};
     use super::{bloom_bloomfilter, bloom_filter_params};
     use bitmap::bloom_bitmap;
+
+    pub const MAGIC_HEADER : c_uint = 0xCB1005DD;
 
     #[link(name = "bloom")]
     #[link(name = "spooky")]

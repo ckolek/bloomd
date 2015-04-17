@@ -62,37 +62,38 @@ impl IniFile {
 	 * Get an option value for the named section.
 	 */
 	//pub fn get<'a>(&self, section: &'a str, option: &'a str) -> String {
-	pub fn get_string(&self, section: &str, option: &str) -> String {
-		if !self.has_option(section, option) {
-			()
+	pub fn get_string(&self, section: &str, option: &str) -> Option<String> {
+		if self.has_option(section, option) {
+            return Some(self.opts[section.to_string()][option.to_string()].to_string());
 		}
-		self.opts[section.to_string()][option.to_string()].to_string()
+
+        return None;
 	}
 	/**
 	 * A convenience method which coerces the option in the specified section to a boolean.
 	 * Note that the accepted values for the option are '1', 'yes', 'true', and 'on', which cause this method to return True, and '0', 'no', 'false', and 'off', which cause it to return False.
 	 * @todo These string values are checked in a case-insensitive manner.
 	 */
-	pub fn get_bool(&self, section: &str, option: &str) -> bool {
-		let value = self.get_string(section, option);
-		match value.as_slice() {
-			"1" | "yes" | "true" | "T" | "on" => true,
-			"0" | "no" | "false" | "F" | "off" => false,
-			_ => panic!("{} is not a boolean.", value)
-		}
+	pub fn get_bool(&self, section: &str, option: &str) -> Option<bool> {
+		return match self.get_string(section, option) {
+            Some(value) => {
+                match value.as_slice() {
+                    "1" | "yes" | "true" | "T" | "on" => Some(true),
+                    "0" | "no" | "false" | "F" | "off" => Some(false),
+                    _ => None
+                }
+            },
+            None => None
+        };
 	}
 	/**
 	 * A convenience method which coerces the option in the specified section to an integer.
 	 */
-	pub fn get<S : FromStr>(&self, section: &str, option: &str) -> S {
-		let val = self.get_string(section, option);
-		let value = val.as_slice();
-		// https://github.com/mozilla/rust/wiki/Doc-FAQ-Cheatsheet#string-to-int
-		let x: Option<S> = FromStr::from_str(value);
-		match x {
-			None => panic!("{} cannot be parsed.", value),
-			_ => x.unwrap()
-		}
+	pub fn get<S : FromStr>(&self, section: &str, option: &str) -> Option<S> {
+		return match self.get_string(section, option) {
+            Some(value) => { FromStr::from_str(value.as_slice()) },
+            None => None
+        };
 	}
 	/**
 	 * Indicates whether the given section exists and contains the given option.
@@ -305,7 +306,7 @@ impl fmt::String for IniFile {
 				if self.comments.contains_key(section) && self.comments[*section].contains_key(key) {
 					lines.push_str(self.comments[*section][*key].as_slice());
 				}
-				lines.push_str(format!("{}={}\n", key.to_string(), self.get_string(section.as_slice(), key.as_slice())).as_slice());
+				lines.push_str(format!("{}={}\n", key.to_string(), self.get_string(section.as_slice(), key.as_slice()).unwrap()).as_slice());
 			}
 		}
 		write!(f, "{}", lines)

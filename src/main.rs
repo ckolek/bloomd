@@ -93,8 +93,11 @@ impl BloomServer {
 
     // interpret a client request
     fn interpret_request(&self, input : &str) -> String {
+        // split input into valid arguments
         let mut args : Vec<&str> = input.split(|&:c : char| c.is_whitespace())
                                          .filter(|&s| s.len() > 0).collect();
+
+        // handle empty input
         if args.is_empty() {
             return String::from_str(MESSAGE_NOT_IMPLEMENTED);
         }
@@ -162,26 +165,33 @@ impl BloomServer {
         });
     }
 
-    // process a 'bulk' command
+    // process a 'bulk' command (bulk <filter> <key> ...)
+    // returns a response String
     fn process_bulk(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() < 2 {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
-        
+
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // form response
         return self.use_filter_mut(&filter_name, |filter| {
             let mut result : String = String::new();
 
+            // iterate through remaining arguments
             for arg in args[1..].iter() {
                 if !result.is_empty() {
                     result.push_str(" ");
                 }
 
+                // get key and corresponding 'set' value
                 let key : String = String::from_str(*arg);
                 let value : u32 = self.set(filter, key);
 
@@ -194,18 +204,23 @@ impl BloomServer {
         }).unwrap();
     }
 
-    // process a 'check' command
+    // process a 'check' command (check <filter> <key>)
+    // returns a response String
     fn process_check(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() != 2 {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
         
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // form response
         return self.use_filter_mut(&filter_name, |filter| {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.check(filter, key);
@@ -214,14 +229,18 @@ impl BloomServer {
         }).unwrap();
     }
 
-    // process a 'create' command
+    // process a 'create' command (create <filter> [capacity=<capacity>] [probability=<probability>] [in_memory=<in_memory>])
+    // returns a response String
     fn process_create(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.is_empty() {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
         
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter does not exist
         if self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_EXISTS);
         }
@@ -255,11 +274,23 @@ impl BloomServer {
             }
         }
         
+        // form response
         self.use_filters_mut(|filters| {
-            let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
-            let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, in_memory, params.bytes, 0);
-            let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), Vec::new());
-            let bloom_filter : BloomFilter = BloomFilter::new(filter_config, lbf);
+            let mut directory : Path = Path::new(self.config.data_dir.clone());
+            directory.push(format!("filter.{}", &filter_name).as_slice());
+
+            let bloom_filter : BloomFilter;
+            if directory.exists() {
+                bloom_filter = BloomFilter::from_directory(directory, &filter_name).unwrap();
+            } else {
+                fs::mkdir(&directory, io::USER_RWX).unwrap();
+
+                let params : bloom_filter_params = create_bloom_filter_params(capacity, probability);
+                let filter_config : BloomFilterConfig = BloomFilterConfig::new(capacity, probability, params.k_num, in_memory, params.bytes);
+                let lbf : bloom_lbf = bloom_lbf::new(params, filter_name.clone(), Vec::new());
+
+                bloom_filter = BloomFilter::new(filter_config, lbf, directory);
+            }
 
             filters.insert(filter_name.clone(), RwLock::new(bloom_filter))
         });
@@ -267,28 +298,35 @@ impl BloomServer {
         return String::from_str(MESSAGE_DONE);
     }
 
-    // process a 'close' command
+    // process a 'close' command (close <filter>)
+    // returns a response String
     fn process_close(&self, args : Vec<&str>) -> String {
         return String::new();
     }
 
-    // process a 'clear' command
+    // process a 'clear' command (clear <filter>)
+    // returns a response String
     fn process_clear(&self, args : Vec<&str>) -> String {
         return String::new();
     }
 
+    // returns a response String (drop <filter>)
     // process a 'drop' command
     fn process_drop(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.is_empty() {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
-        
+
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // remove the filter
         self.use_filters_mut(|filters| {
             filters.remove(&filter_name);
         });
@@ -296,21 +334,29 @@ impl BloomServer {
         return String::from_str(MESSAGE_DONE);
     }
 
-    // process a 'flush' command
+    // process a 'flush' command (flush [<filter>])
+    // returns a response String
     fn process_flush(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() > 1 {
             return String::from_str(MESSAGE_BAD_ARGS);
+        // handle single filter flush
         } else if args.len() == 1 {
+            // get filter name
             let filter_name : String = String::from_str(args[0]);
             
+            // check that filter exists
             if !self.contains_filter_named(&filter_name) {
                 return String::from_str(MESSAGE_NO_EXIST);
             }
 
+            // flush the filter
             self.use_filter_mut(&filter_name, |filter| {
                 filter.lbf.flush().unwrap();
             }).unwrap();
+        // handle all filters flush
         } else {
+            // flush all filters
             self.use_filters_mut(|filters| {
                 for filter in filters.values() {
                     (*filter.write().unwrap()).flush().unwrap();
@@ -321,18 +367,23 @@ impl BloomServer {
         return String::from_str(MESSAGE_DONE);
     }
 
-    // process a 'info' command
+    // process a 'info' command (info <filter>)
+    // returns a response String
     fn process_info(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.is_empty() {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
-        
+
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // form response
         return self.use_filter(&filter_name, |filter| {
             let mut result : String = String::new();
             result.push_str(MESSAGE_START);
@@ -355,12 +406,15 @@ impl BloomServer {
         }).unwrap();
     }
 
-    // process a 'list' command
+    // process a 'list' command (list [<filter_prefix>])
+    // returns a response String
     fn process_list(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() > 1 {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
 
+        // get filter prefix
         let mut prefix : &str;
         if !args.is_empty() {
             prefix = args[0];
@@ -368,7 +422,7 @@ impl BloomServer {
             prefix = "";
         }
 
-
+        // form response
         return self.use_filters(|filters| {
             let mut result : String = String::new();
             result.push_str(MESSAGE_START);
@@ -392,18 +446,23 @@ impl BloomServer {
         });
     }
 
-    // process a 'multi' command
+    // process a 'multi' command (multi <filter> <key> ...)
+    // returns a response String
     fn process_multi(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() < 2 {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
-        
+
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // form response
         return self.use_filter_mut(&filter_name, |filter| {
             let mut result : String = String::new();
 
@@ -424,18 +483,23 @@ impl BloomServer {
         }).unwrap();
     }
 
-    // process a 'set' command
+    // process a 'set' command (set <filter> <key>)
+    // returns a response String
     fn process_set(&self, args : Vec<&str>) -> String {
+        // handle invalid arguments
         if args.len() != 2 {
             return String::from_str(MESSAGE_BAD_ARGS);
         }
         
+        // get filter name
         let filter_name : String = String::from_str(args[0]);
         
+        // check that filter exists
         if !self.contains_filter_named(&filter_name) {
             return String::from_str(MESSAGE_NO_EXIST);
         }
 
+        // form response
         return self.use_filter_mut(&filter_name, |filter| {
             let key : String = String::from_str(args[1]);
             let value : u32 = self.set(filter, key);
@@ -445,6 +509,7 @@ impl BloomServer {
     }
 
     // do a check for the given key in the given BloomFilter and return the corresponding value
+    // returns a response String
     fn check(&self, filter : &mut BloomFilter, key : String) -> u32 {
         let ref lbf : bloom_lbf = filter.lbf;
         let value : u32 = lbf.contains(&key).unwrap();
@@ -459,12 +524,13 @@ impl BloomServer {
     }
 
     // do a set for the given key in the given BloomFilter, creating new bloom filters if necessary, and return the corresponding value
+    // returns a response String
     fn set(&self, filter : &mut BloomFilter, key : String) -> u32 {
         let ref mut lbf : bloom_lbf = filter.lbf;
         let value : u32 = lbf.contains(&key).unwrap();
 
         if value == lbf.num_filters {
-            let bloom_filter : bloom_bloomfilter = create_bloom_filter(&lbf.params, format!("{}/{}-{}.bmp", &self.config.data_dir, &lbf.name, value).as_slice());
+            let bloom_filter : bloom_bloomfilter = create_bloom_filter(&lbf.params, format!("{}/filter.{}/{}.bmp", &self.config.data_dir, &lbf.name, value).as_slice());
 
             lbf.add_filter(bloom_filter);
         }

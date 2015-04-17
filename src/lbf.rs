@@ -19,7 +19,7 @@ impl bloom_lbf {
             params: params,
             name: name,
             num_filters: filters.len() as u32,
-            filters: Vec::new()
+            filters: filters
         };
     }
 

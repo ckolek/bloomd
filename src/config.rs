@@ -1,4 +1,5 @@
 use inifile::IniFile;
+use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct BloomConfig {
@@ -80,7 +81,6 @@ impl BloomConfig {
             1,             // worker_threads
             false          // use_mmap
         );
-
     }
 
     pub fn from_filename(filename : &str) -> Self {
@@ -94,20 +94,20 @@ impl BloomConfig {
             if ini.has_section(INI_SECTION_BLOOMD.as_slice()) {
                 for option in ini.options(String::from_str(INI_SECTION_BLOOMD)).iter() {
                     match option.as_slice() {
-                        INI_OPTION_PORT                  => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_PORT) },
-                        INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT) },
-                        INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT) },
-                        INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE) },
-                        INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL) },
-                        INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL) },
-                        INI_OPTION_WORKERS               => { config.worker_threads        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_WORKERS) }
-                        INI_OPTION_INITIAL_CAPACITY      => { config.initial_capacity      = ini.get::<u64>(INI_SECTION_BLOOMD, INI_OPTION_INITIAL_CAPACITY) },
-                        INI_OPTION_USE_MMAP              => { config.use_mmap              = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_USE_MMAP) },
-                        INI_OPTION_IN_MEMORY             => { config.in_memory             = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_IN_MEMORY) },
-                        INI_OPTION_DEFAULT_PROBABILITY   => { config.default_probability   = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_DEFAULT_PROBABILITY) },
-                        INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION) },
-                        INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR) },
-                        INI_OPTION_BIND_ADDRESS          => { config.bind_host             = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS) },
+                        INI_OPTION_PORT                  => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_PORT).unwrap() },
+                        INI_OPTION_TCP_PORT              => { config.tcp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_TCP_PORT).unwrap() },
+                        INI_OPTION_UDP_PORT              => { config.udp_port              = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_UDP_PORT).unwrap() },
+                        INI_OPTION_SCALE_SIZE            => { config.scale_size            = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_SCALE_SIZE).unwrap() },
+                        INI_OPTION_FLUSH_INTERVAL        => { config.flush_interval        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_FLUSH_INTERVAL).unwrap() },
+                        INI_OPTION_COLD_INTERVAL         => { config.cold_interval         = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_COLD_INTERVAL).unwrap() },
+                        INI_OPTION_WORKERS               => { config.worker_threads        = ini.get::<i32>(INI_SECTION_BLOOMD, INI_OPTION_WORKERS).unwrap() }
+                        INI_OPTION_INITIAL_CAPACITY      => { config.initial_capacity      = ini.get::<u64>(INI_SECTION_BLOOMD, INI_OPTION_INITIAL_CAPACITY).unwrap() },
+                        INI_OPTION_USE_MMAP              => { config.use_mmap              = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_USE_MMAP).unwrap() },
+                        INI_OPTION_IN_MEMORY             => { config.in_memory             = ini.get_bool  (INI_SECTION_BLOOMD, INI_OPTION_IN_MEMORY).unwrap() },
+                        INI_OPTION_DEFAULT_PROBABILITY   => { config.default_probability   = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_DEFAULT_PROBABILITY).unwrap() },
+                        INI_OPTION_PROBABILITY_REDUCTION => { config.probability_reduction = ini.get::<f64>(INI_SECTION_BLOOMD, INI_OPTION_PROBABILITY_REDUCTION).unwrap() },
+                        INI_OPTION_DATA_DIR              => { config.data_dir              = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_DATA_DIR).unwrap() },
+                        INI_OPTION_BIND_ADDRESS          => { config.bind_host             = ini.get_string(INI_SECTION_BLOOMD, INI_OPTION_BIND_ADDRESS).unwrap() },
                         _ => { panic!("Unknown option: {}", option) }
                     }
                 }
@@ -124,20 +124,101 @@ impl BloomConfig {
 
 unsafe impl Send for BloomConfig { }
 
+const INI_SECTION_CONFIG          : &'static str = "config";
+const INI_OPTION_CAPACITY         : &'static str = "capacity";
+const INI_OPTION_PROBABILITY      : &'static str = "probability";
+const INI_OPTION_K_NUM            : &'static str = "k_num";
+const INI_OPTION_BYTES            : &'static str = "bytes";
+const INI_OPTION_SIZE             : &'static str = "size";
+const INI_OPTION_BITMAP_FILENAMES : &'static str = "bitmap_filenames";
+const INI_OPTION_FILTER_SIZES     : &'static str = "filter_sizes";
+
 /**
  * This structure is used to persist
  * filter specific settings to an INI file.
  */
 pub struct BloomFilterConfig {
-    pub capacity              : u64, // Total capacity
-    pub probability           : f64,
-    pub in_memory             : bool,
-    pub bytes                 : u64, // Total byte size
-    pub size                  : u64, // Total size
+    pub capacity              : u64,         // Total capacity
+    pub probability           : f64,         // False positive probability
+    pub k_num                 : u32,         // K value
+    pub in_memory             : bool,        // Filter is only contained in memory
+    pub bytes                 : u64,         // Total byte size
+    pub size                  : u64,         // Total size
+    pub bitmap_filenames      : Vec<String>, // bitmap filenames
+    pub filter_sizes          : Vec<u64>     // filter sizes
 }
 
 impl BloomFilterConfig {
-    pub fn new(capacity : u64, probability : f64, in_memory : bool, bytes : u64, size : u64) -> Self {
-        return BloomFilterConfig { capacity: capacity, probability: probability, in_memory: in_memory, bytes: bytes, size: size };
+    pub fn new(capacity : u64, probability : f64, k_num : u32, in_memory : bool, bytes : u64) -> Self {
+        return BloomFilterConfig {
+            capacity: capacity,
+            probability: probability,
+            k_num: k_num,
+            in_memory: in_memory,
+            bytes: bytes,
+            size: 0,
+            bitmap_filenames: Vec::new(),
+            filter_sizes: Vec::new() };
+    }
+
+    pub fn from_ini(ini : &IniFile) -> Result<Self, ()> {
+        let capacity : u64;
+        match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_CAPACITY) {
+            Some(value) => { capacity = value },
+            None => { return Err(()) }
+        };
+
+        let probability : f64;
+        match ini.get::<f64>(INI_SECTION_CONFIG, INI_OPTION_PROBABILITY) {
+            Some(value) => { probability = value },
+            None => { return Err(()) }
+        };
+
+        let k_num : u32;
+        match ini.get::<u32>(INI_SECTION_CONFIG, INI_OPTION_K_NUM) {
+            Some(value) => { k_num = value },
+            None => { return Err(()) }
+        };
+
+        let in_memory : bool;
+        match ini.get_bool(INI_SECTION_CONFIG, INI_OPTION_IN_MEMORY) {
+            Some(value) => { in_memory = value },
+            None => { return Err(()) }
+        };
+
+        let bytes : u64;
+        match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_BYTES) {
+            Some(value) => { bytes = value },
+            None => { return Err(()) }
+        };
+
+        let size : u64;
+        match ini.get::<u64>(INI_SECTION_CONFIG, INI_OPTION_SIZE) {
+            Some(value) => { size = value },
+            None => { return Err(()) }
+        };
+
+        let bitmap_filenames : Vec<String>;
+        match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_BITMAP_FILENAMES) {
+            Some(value) => { bitmap_filenames = value.split_str(",").map(|piece| String::from_str(piece) ).collect() },
+            None => { return Err(()) }
+        };
+
+        let filter_sizes : Vec<u64>;
+        match ini.get_string(INI_SECTION_CONFIG, INI_OPTION_FILTER_SIZES) {
+            Some(value) => { filter_sizes = value.split_str(",").map(|piece| FromStr::from_str(piece).unwrap() ).collect::<Vec<u64>>() },
+            None => { return Err(()) }
+        };
+
+        return Ok(BloomFilterConfig {
+            capacity: capacity,
+            probability: probability,
+            k_num: k_num,
+            in_memory: in_memory,
+            bytes: bytes,
+            size: size,
+            bitmap_filenames: bitmap_filenames,
+            filter_sizes: filter_sizes
+        });
     }
 }
