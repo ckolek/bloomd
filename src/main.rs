@@ -905,7 +905,19 @@ mod tests {
         test_command(&server, "infor filter", MESSAGE_NOT_IMPLEMENTED);
         test_command(&server, "sette filter first", MESSAGE_NOT_IMPLEMENTED);
         
-        // Clean up in case of persistence, and test drop
+        // Test flush, close, and clear
+        test_command(&server, "flush", MESSAGE_DONE);
+        test_command(&server, "flush filter", MESSAGE_DONE);
+        
+        test_command(&server, "close", MESSAGE_BAD_ARGS);
+        test_command(&server, "close filter", MESSAGE_DONE);
+        test_command(&server, "create filter", MESSAGE_EXISTS);
+        
+        test_command(&server, "clear filter", MESSAGE_DONE);
+        test_command(&server, "create filter", MESSAGE_DONE);
+        test_command(&server, "m filter first second third", "5 2 2");
+        
+        // Clean up to prevent persistence affecting future tests, and test drop
         test_command(&server, "drop", MESSAGE_BAD_ARGS);
         test_command(&server, "drop filter", MESSAGE_DONE);
         test_command(&server, "drop filter", MESSAGE_NO_EXIST);
